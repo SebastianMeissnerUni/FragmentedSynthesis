@@ -94,7 +94,6 @@ async function generateSummary() {
     summary.value = ''
     status.value = 'idle'
     return
-    return
   }
 
   const token = ++requestToken
