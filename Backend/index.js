@@ -3,9 +3,10 @@ const express = require("express");
 const cors = require("cors");
 const Database = require("better-sqlite3");
 require("dotenv").config();
+const app = express();
+const authRoutes = require("./routes/auth");
 
 // --- Express App erstellen ---
-const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -38,3 +39,9 @@ const PORT = 3000;
 app.listen(PORT, () => {
     console.log("Backend läuft auf Port " + PORT);
 });
+
+app.use(express.json());
+app.use("/auth", authRoutes);
+
+app.listen(3000, () => console.log("Backend läuft auf Port 3000"));
+

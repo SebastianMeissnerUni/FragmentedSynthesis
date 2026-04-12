@@ -10,6 +10,7 @@ import {useLoadAndSave} from "@/api/LoadAndSave.ts";
 
 
 
+
 // global variables
 const demoActive = inject<Ref<boolean>>('demoActive')!
 const bibliography = inject<Ref<BibEntry[]>>('bibliography')!
@@ -59,6 +60,44 @@ const {startDemo, skipDemo, nextStep} = useDemo({
 })
 
 const {saveToFile, restoreFromFile} = useLoadAndSave()
+
+function toggleMode() {
+  isLogin.value = !isLogin.value;
+}
+
+async function submitAuth() {
+  authError.value = "";
+
+  const url = isLogin.value
+      ? "http://localhost:3000/auth/login"
+      : "http://localhost:3000/auth/register";
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: email.value,
+      password: password.value
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    authError.value = data.error;
+    return;
+  }
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    showLogIn.value = false;
+  }
+}
+
+function continueWithoutLogin() {
+  showLogIn.value = false;
+}
+
 
 
 async function onLatexZipUpload(file: File) {
