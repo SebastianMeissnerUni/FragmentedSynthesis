@@ -19,6 +19,7 @@ const email = ref('')
 const password = ref('')
 const authError = ref('')
 
+
 const emit = defineEmits<{
   (e: 'import-latex', payload: { nodes: Node[], edges: Edge[] }): void
 }>()
