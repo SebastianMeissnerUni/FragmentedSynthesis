@@ -18,6 +18,7 @@ import SnapshotsPanelContent from "@/Panels/SnapshotsPanelContent.vue";
 import StartupPanelContent from "@/Panels/StartupPanelContent.vue";
 import LlmQueuePanelContent from "@/Panels/LlmQueuePanelContent.vue";
 import {llmBusy} from "@/api/llmQueue.ts";
+import ProfileButton from './components/ProfileButton.vue';
 
 
 const demoActive = inject<Ref<boolean>>('demoActive', ref(false))!
@@ -178,7 +179,7 @@ onUnmounted(() => {
 
       <!-- First Button Row -->
 
-        <div class="buttons">
+        <div class="buttons profile-row">
           <button title="Reload WebApp" @click="reloadApp">
             🔄
           </button>
@@ -189,6 +190,7 @@ onUnmounted(() => {
             📂
             <input accept=".json" type="file" @change="restoreFromFile"/>
           </button>
+          <ProfileButton />
       </div>
 
       <!-- Second Button Row -->
@@ -651,4 +653,16 @@ onUnmounted(() => {
   transform: translateX(-50%) scale(1.2);
 }
 
+
+.buttons.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Abstand zwischen Buttons */
+}
+
+/* Kleiner Abstand links vom Profilbutton, falls nötig */
+.buttons.profile-row ProfileButton,
+.buttons.profile-row .profile-btn {
+  margin-left: 6px;
+}
 </style>

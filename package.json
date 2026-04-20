@@ -23,6 +23,7 @@
     "html2canvas": "^1.4.1",
     "jszip": "^3.10.1",
     "vue": "^3.5.22",
+    "vue-router": "^5.0.4",
     "vue-uuid": "^3.0.0"
   },
   "devDependencies": {

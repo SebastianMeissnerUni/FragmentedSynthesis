@@ -374,6 +374,14 @@ onUnmounted(() => {
 
 <template>
 
+  <router-view />
+  <nav>
+    <router-link to="/">Home</router-link>
+    <router-link to="/profile">Profil</router-link>
+  </nav>
+  <router-link :to="{ name: 'profile', params: { id: 42 } }">Profil 42</router-link>
+  <router-link to="/about" active-class="is-active">Über</router-link>
+
   <div style="width: 100%; height: 100vh"   class="app-root" :class="{ 'disco-mode': designMode === 'disco' }">
 
     <ul v-if="designMode === 'disco'" class="strand">

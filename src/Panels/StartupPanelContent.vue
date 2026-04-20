@@ -66,6 +66,10 @@ function toggleMode() {
   isLogin.value = !isLogin.value;
 }
 
+
+
+
+
 async function submitAuth() {
   authError.value = "";
 
