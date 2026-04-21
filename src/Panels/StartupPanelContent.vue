@@ -7,7 +7,7 @@ import type {BibEntry} from "@/App.vue";
 import {type Edge, Panel, useVueFlow} from '@vue-flow/core'
 import type {ZipFileEntry} from "@/App.vue";
 import {useLoadAndSave} from "@/api/LoadAndSave.ts";
-
+import { useRouter } from 'vue-router';
 
 
 
@@ -18,8 +18,7 @@ const isLogin = ref(true)
 const email = ref('')
 const password = ref('')
 const authError = ref('')
-
-
+const router = useRouter();
 const emit = defineEmits<{
   (e: 'import-latex', payload: { nodes: Node[], edges: Edge[] }): void
 }>()
@@ -68,8 +67,6 @@ function toggleMode() {
 
 
 
-
-
 async function submitAuth() {
   authError.value = "";
 
@@ -88,6 +85,19 @@ async function submitAuth() {
 
   const data = await res.json();
 
+  if (res.ok && data.token) {
+    // Token speichern (für API Anfragen)
+    localStorage.setItem('token', data.token);
+
+    // E-Mail speichern (für die Anzeige im Profil)
+    localStorage.setItem('userEmail', email.value);
+
+    // Weiterleitung zum Editor
+    router.push('/');
+  } else {
+    authError.value = data.error || "Login fehlgeschlagen";
+  }
+
   if (data.error) {
     authError.value = data.error;
     return;
@@ -100,8 +110,10 @@ async function submitAuth() {
 }
 
 function continueWithoutLogin() {
-  showLogIn.value = false;
+  isLogin.value = false
+  showLogIn.value = false
 }
+
 
 
 

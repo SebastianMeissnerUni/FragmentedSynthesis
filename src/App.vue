@@ -10,6 +10,7 @@ import SaveRestoreControls from './Controls.vue'
 import { findNodeTemplate} from './nodes/templates'
 
 
+
 //Import every node-component:
 import TextAreaNode from './components/TextAreaNode.vue'
 import TextViewNode from './components/TextViewNode.vue'
@@ -67,7 +68,6 @@ export interface EdgeMouseEvent {
 }
 
 //Globally provided data:
-
 const snapshots = ref<Snapshot[]>([])
 provide('snapshots', snapshots)
 
@@ -335,6 +335,11 @@ function stopDiscoEdges() {
   }))
 }
 
+// Sucht im Speicher nach der Mail, sonst Standardtext
+const userEmail = ref(localStorage.getItem('userEmail') || 'Nicht angemeldet');
+
+// Stellt die Variable für alle anderen Komponenten (wie Profile.vue) bereit
+provide('userEmail', userEmail);
 
 
 watch(nodes, (newNodes) => {
@@ -374,13 +379,12 @@ onUnmounted(() => {
 
 <template>
 
-  <router-view />
-  <nav>
-    <router-link to="/">Home</router-link>
-    <router-link to="/profile">Profil</router-link>
-  </nav>
-  <router-link :to="{ name: 'profile', params: { id: 42 } }">Profil 42</router-link>
-  <router-link to="/about" active-class="is-active">Über</router-link>
+  <div
+      v-show="$route.path === '/'"
+      style="width: 100%; height: 100vh"
+      class="app-root"
+      :class="{ 'disco-mode': designMode === 'disco' }"
+  >
 
   <div style="width: 100%; height: 100vh"   class="app-root" :class="{ 'disco-mode': designMode === 'disco' }">
 
@@ -482,6 +486,7 @@ onUnmounted(() => {
 
   </div>
 
+  </div> <router-view v-if="$route.path !== '/'" />
 
 </template>
 
