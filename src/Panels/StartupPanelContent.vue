@@ -14,10 +14,7 @@ import { useRouter } from 'vue-router';
 // global variables
 const demoActive = inject<Ref<boolean>>('demoActive')!
 const bibliography = inject<Ref<BibEntry[]>>('bibliography')!
-const isLogin = ref(true)
-const email = ref('')
-const password = ref('')
-const authError = ref('')
+
 const router = useRouter();
 const emit = defineEmits<{
   (e: 'import-latex', payload: { nodes: Node[], edges: Edge[] }): void
@@ -26,7 +23,7 @@ const emit = defineEmits<{
 // local ui state
 const showIntro = ref(true)
 const showLatexFilePicker = ref(false)
-const showLogIn = ref(true)
+
 
 //file upload variables
 
@@ -60,62 +57,6 @@ const {startDemo, skipDemo, nextStep} = useDemo({
 })
 
 const {saveToFile, restoreFromFile} = useLoadAndSave()
-
-function toggleMode() {
-  isLogin.value = !isLogin.value;
-}
-
-
-
-async function submitAuth() {
-  authError.value = "";
-
-  const url = isLogin.value
-      ? "http://localhost:3000/auth/login"
-      : "http://localhost:3000/auth/register";
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: email.value,
-      password: password.value
-    })
-  });
-
-  const data = await res.json();
-
-  if (res.ok && data.token) {
-    // Token speichern (für API Anfragen)
-    localStorage.setItem('token', data.token);
-
-    // E-Mail speichern (für die Anzeige im Profil)
-    localStorage.setItem('userEmail', email.value);
-
-    // Weiterleitung zum Editor
-    router.push('/');
-  } else {
-    authError.value = data.error || "Login fehlgeschlagen";
-  }
-
-  if (data.error) {
-    authError.value = data.error;
-    return;
-  }
-
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-    showLogIn.value = false;
-  }
-}
-
-function continueWithoutLogin() {
-  isLogin.value = false
-  showLogIn.value = false
-}
-
-
-
 
 async function onLatexZipUpload(file: File) {
   if (!file || !file.name.endsWith('.zip')) return
@@ -223,34 +164,13 @@ function handleUploadFile() {
   showIntro.value = false
 }
 
+
+
 </script>
 
 <template>
 
   <!-- Startup Overlay -->
-  <!-- Auth Modal -->
-  <div v-if="showLogIn" class="auth-overlay">
-    <div class="auth-box">
-      <h1>{{ isLogin ? 'Einloggen' : 'Account erstellen' }}</h1>
-
-      <input v-model="email" type="email" placeholder="E-Mail" />
-      <input v-model="password" type="password" placeholder="Passwort" />
-
-      <div class="auth-actions">
-        <button @click="submitAuth">{{ isLogin ? 'Einloggen' : 'Registrieren' }}</button>
-        <button class="link" @click="toggleMode">
-          {{ isLogin ? 'Neuen Account erstellen' : 'Bereits Account? Einloggen' }}
-        </button>
-      </div>
-
-      <button class="continueWithoutLogin" @click="continueWithoutLogin">
-        Ohne Anmeldung fortfahren
-      </button>
-
-      <div v-if="authError" class="error">{{ authError }}</div>
-    </div>
-  </div>
-
 
   <div v-if="showIntro" class="demo-overlay">
     <div class="demo-box">
@@ -327,69 +247,6 @@ function handleUploadFile() {
 
 <style scoped>
 
-.auth-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.5);
-  z-index: 9999;
-}
-
-.auth-box {
-  background: black;
-  color: white;
-  padding: 2rem 3rem;
-  border-radius: 20px;
-  text-align: center;
-  width: 600px;
-  box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  position: relative;
-  overflow: hidden;
-}
-
-
-.auth-box input {
-  display: block;
-  width: 100%;
-  margin: 8px 0;
-  padding: 10px 12px;     /* beeinflusst Höhe */
-  font-size: 1rem;
-  border-radius: 8px;     /* runde Ecken für Inputs */
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-}
-.auth-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 12px;
-}
-.continueWithoutLogin{
-  display: block;        /* eigener Block → kann verschoben werden */
-  width: fit-content;    /* nur so breit wie nötig */
-  margin-left: auto;     /* schiebt ihn komplett nach rechts */
-  margin-top: 12px;
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-
-.auth-actions .link {
-  background: transparent;
-  border: none;
-  color: #06c;
-  cursor: pointer;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 0.95rem;
-}
-.error { color: #b00020; margin-top:8px; }
 
 .demo-overlay {
   position: fixed;

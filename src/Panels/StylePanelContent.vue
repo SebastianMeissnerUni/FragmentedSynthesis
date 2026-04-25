@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, inject, type Ref } from 'vue'
-import type {StyleTemplate} from "@/App.vue";
+import type { StyleTemplate } from "@/components/AppEditor.vue";
 
 
 const templates = inject<Ref<StyleTemplate[]>>('styleTemplates')!

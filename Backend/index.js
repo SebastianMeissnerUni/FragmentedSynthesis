@@ -5,6 +5,7 @@ const Database = require("better-sqlite3");
 require("dotenv").config();
 const app = express();
 const authRoutes = require("./routes/auth");
+const projectRoutes = require("./routes/projects");
 
 // --- Express App erstellen ---
 app.use(cors());
@@ -42,6 +43,6 @@ app.listen(PORT, () => {
 
 app.use(express.json());
 app.use("/auth", authRoutes);
+app.use("/projects", projectRoutes);
 
-app.listen(3000, () => console.log("Backend läuft auf Port 3000"));
 
