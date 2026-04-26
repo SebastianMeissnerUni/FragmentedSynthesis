@@ -12,7 +12,7 @@ if (!localStorage.getItem("token")) {
 
 <template>
   <AppEditor />
-  <StartupPanelContent />
+  <StartupPanelContent v-if="showIntro" />
 </template>
 
 <style scoped>

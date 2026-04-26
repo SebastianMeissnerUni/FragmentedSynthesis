@@ -387,6 +387,8 @@ onUnmounted(() => {
       :class="{ 'disco-mode': designMode === 'disco' }"
   >
 
+    <SaveRestoreControls />
+
     <!-- Disco Mode -->
     <ul v-if="designMode === 'disco'" class="strand">
       <li v-for="i in 100" :key="i"></li>
@@ -433,8 +435,6 @@ onUnmounted(() => {
         @edge-click="onEdgeClick"
         @pane-click="closeEdgeMenu"
     >
-
-      <SaveRestoreControls />
 
       <!-- Node Templates -->
       <template #node-textArea="p"><TextAreaNode v-bind="p" /></template>
