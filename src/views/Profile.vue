@@ -1,4 +1,5 @@
 <script setup lang="ts">
+
 import { ref } from 'vue'
 import { inject } from 'vue';
 
@@ -52,7 +53,8 @@ const handlePasswordChange = async () => {
     message.value = { text: "Verbindung zum Server fehlgeschlagen", type: "error" };
   }
 };
-const userEmail = inject('userEmail');
+const userEmail = ref(localStorage.getItem('userEmail') || '')
+
 
 </script>
 
@@ -86,7 +88,7 @@ const userEmail = inject('userEmail');
 
       <div class="actions">
         <button class="save-btn" @click="handlePasswordChange">Passwort aktualisieren</button>
-        <button class="back-btn" @click="$router.push('/')">Zurück zum Editor</button>
+        <button class="back-btn" @click="$router.push('/main')">Zurück zum Editor</button>
       </div>
 
       <p v-if="message" :class="message.type">{{ message.text }}</p>

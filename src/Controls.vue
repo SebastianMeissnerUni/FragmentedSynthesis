@@ -159,10 +159,6 @@ onUnmounted(() => {
 
 <template>
 
-
-  <StartupPanelContent/>
-
-
   <Panel
       v-if="llmBusy"
       position="bottom-center"

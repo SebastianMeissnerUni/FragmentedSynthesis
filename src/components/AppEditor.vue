@@ -5,6 +5,9 @@ import { type Node, type Edge, type Connection, useVueFlow } from '@vue-flow/cor
 import { VueFlow, addEdge } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
+import StartupPanelContent from "@/Panels/StartupPanelContent.vue"
+
+
 
 
 
@@ -381,6 +384,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <StartupPanelContent />
   <div
       style="width: 100%; height: 100vh"
       class="app-root"
@@ -457,18 +461,11 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
-
-@import '../main.css';
-
-/* import the necessary styles for Vue Flow to work */
+<style>
 @import '@vue-flow/core/dist/style.css';
-
-/* import the default theme, this is optional but generally recommended */
-@import '@vue-flow/core/dist/theme-default.css';
-
-/* import default minimap theme */
 @import '@vue-flow/minimap/dist/style.css';
+@import '@vue-flow/controls/dist/style.css';
+@import '../main.css';
 
 /* Hintergrundfarbe der MiniMap */
 .vue-flow__minimap {
