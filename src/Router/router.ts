@@ -1,9 +1,15 @@
 import { createRouter, createWebHistory } from "vue-router";
+
+import LoginPage from "../views/LoginPage.vue";
+import LoginSuccessPage from "../views/LoginSuccessPage.vue";
+import MainPage from "../views/MainPage.vue";
 import Profile from "../views/Profile.vue";
-import StartupPanelContent from "../Panels/StartupPanelContent.vue";
 
 const routes = [
-    { path: "/", name: "home", component: StartupPanelContent },
+    { path: "/", redirect: "/login" },
+    { path: "/login", name: "login", component: LoginPage },
+    { path: "/login-success", name: "login-success", component: LoginSuccessPage },
+    { path: "/main", name: "main", component: MainPage },
     { path: "/profile", name: "profile", component: Profile }
 ];
 
