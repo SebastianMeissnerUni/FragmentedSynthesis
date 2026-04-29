@@ -186,7 +186,6 @@ onUnmounted(() => {
             📂
             <input accept=".json" type="file" @change="restoreFromFile"/>
           </button>
-          <ProfileButton />
       </div>
 
       <!-- Second Button Row -->
@@ -621,12 +620,6 @@ onUnmounted(() => {
   height: 100%;
   pointer-events: all;
 }
-
-
-
-
-
-
 
 .disco-hotspot {
   position: absolute;
