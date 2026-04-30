@@ -1,4 +1,6 @@
 <script setup lang="ts">
+
+
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
@@ -18,14 +20,7 @@ onMounted(async () => {
   // Token speichern (kurzfristig)
   localStorage.setItem('token', token)
 
-  // Optional: falls Backend noch Benutzerinfo liefern soll:
-  // const res = await fetch('http://localhost:3000/auth/me', {
-  //   headers: { Authorization: `Bearer ${token}` }
-  // })
-  // const user = await res.json()
-  // localStorage.setItem('userEmail', user.email || '')
 
-  // Weiterleitung zum Editor
   router.replace('/main')
 })
 </script>

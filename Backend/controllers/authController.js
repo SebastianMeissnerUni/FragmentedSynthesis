@@ -3,6 +3,25 @@ const jwt = require("jsonwebtoken");
 const db = require("../utils/db");
 const axios = require("axios");
 
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+    }
+    jwt.verify(token, "SECRET123", (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: "Invalid token" });
+        }
+        req.user = user;
+        next();
+    });
+}
+exports.authenticateToken = authenticateToken;
+
+
+
 exports.register = async (req, res) => {
     const { email, password } = req.body;
 
@@ -176,3 +195,24 @@ exports.githubLoginOrRegister = (githubUser, res) => {
         }
     );
 };
+
+exports.me = (req, res) => {
+    db.get(
+        "SELECT id, username, email FROM users WHERE id = ?",
+        [req.user.id],
+        (err, user) => {
+            if (err) return res.status(500).json({ error: "DB error" });
+            if (!user) return res.status(404).json({ error: "User not found" });
+
+            // Lokale User: username = E-Mail
+            // GitHub User: email = echte GitHub-Mail
+            const email = user.email || user.username;
+
+            res.json({
+                id: user.id,
+                email
+            });
+        }
+    );
+};
+

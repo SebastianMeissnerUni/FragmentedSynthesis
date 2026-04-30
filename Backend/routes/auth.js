@@ -5,8 +5,11 @@ const {
     login,
     changePassword,
     githubRedirect,
-    githubCallback
+    githubCallback,
+    me,
+    authenticateToken
 } = require("../controllers/authController");
+
 
 // Normaler Login
 router.post("/register", register);
@@ -16,5 +19,6 @@ router.post("/change-password", changePassword);
 // GitHub OAuth Login
 router.get("/github", githubRedirect);
 router.get("/github/callback", githubCallback);
+router.get("/me", authenticateToken, me);
 
 module.exports = router;

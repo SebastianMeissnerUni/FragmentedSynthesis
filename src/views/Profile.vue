@@ -1,10 +1,25 @@
 <script setup lang="ts">
-
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { inject } from 'vue';
 
 
 const message = ref<{text: string, type: 'error' | 'success'} | null>(null)
+const userEmail = ref('')
+
+onMounted(async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return
+
+  const res = await fetch("http://localhost:3000/auth/me", {
+    headers: { "Authorization": `Bearer ${token}` }
+  })
+
+  const data = await res.json()
+
+  if (res.ok) {
+    userEmail.value = data.email
+  }
+})
 
 const passwords = ref({
   old: '',
@@ -29,7 +44,10 @@ const handlePasswordChange = async () => {
     // JETZT DER API-CALL (wie bei Login):
     const res = await fetch("http://localhost:3000/auth/change-password", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem('token')}`
+          },
       body: JSON.stringify({
         email: userEmail.value, // Die E-Mail von inject()
         oldPassword: passwords.value.old,
@@ -53,7 +71,8 @@ const handlePasswordChange = async () => {
     message.value = { text: "Verbindung zum Server fehlgeschlagen", type: "error" };
   }
 };
-const userEmail = ref(localStorage.getItem('userEmail') || '')
+
+
 
 
 </script>
