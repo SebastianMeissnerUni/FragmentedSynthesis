@@ -4,7 +4,9 @@ import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 
 const token = localStorage.getItem("token")
-if (!token) {
+const guest = localStorage.getItem("guest")
+
+if (!token && !guest) {
   window.location.href = "/login"
 }
 </script>

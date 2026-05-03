@@ -59,6 +59,7 @@ function loginWithGitHub() {
 }
 
 function continueWithoutLogin() {
+  localStorage.setItem("guest", "true");
   router.push("/main");
 }
 </script>

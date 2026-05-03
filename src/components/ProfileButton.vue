@@ -17,6 +17,7 @@ function goToProfile() {
 
 function logout() {
   localStorage.removeItem('token')
+  localStorage.removeItem('guest')
   router.push('/login')
   open.value = false
 }
