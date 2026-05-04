@@ -2,14 +2,27 @@
 import { ref, onMounted } from 'vue'
 import { inject } from 'vue';
 
+interface GitHubRepo {
+  id: number
+  name: string
+  private: boolean
+  owner: {
+    login: string
+  }
+}
 
 const message = ref<{text: string, type: 'error' | 'success'} | null>(null)
 const userEmail = ref('')
+const githubRepos = ref<GitHubRepo[]>([])
+const localProjects = ref<any[]>([])
+
 
 onMounted(async () => {
+
   const token = localStorage.getItem('token')
   if (!token) return
 
+  // --- 1) Userdaten laden ---
   const res = await fetch("http://localhost:3000/auth/me", {
     headers: { "Authorization": `Bearer ${token}` }
   })
@@ -19,7 +32,20 @@ onMounted(async () => {
   if (res.ok) {
     userEmail.value = data.email
   }
+
+  // --- 2) Lokale Projekte laden ---
+  const projRes = await fetch("http://localhost:3000/projects/list", {
+    headers: { "Authorization": `Bearer ${token}` }
+  })
+  localProjects.value = await projRes.json()
+
+  // --- 3) GitHub Repositories laden ---
+  const ghRes = await fetch("http://localhost:3000/github/repos", {
+    headers: { "Authorization": `Bearer ${token}` }
+  })
+  githubRepos.value = await ghRes.json()
 })
+
 
 const passwords = ref({
   old: '',
@@ -111,9 +137,44 @@ const handlePasswordChange = async () => {
       </div>
 
       <p v-if="message" :class="message.type">{{ message.text }}</p>
+
+      <!-- LOKALE PROJEKTE -->
+
+      <hr />
+
+      <h3>Meine lokalen Projekte</h3>
+      <ul class="project-list">
+        <li v-for="p in localProjects" :key="p.id">
+          <div class="project-info">
+            <strong>{{ p.title }}</strong>
+          </div>
+          <button class="open-btn" @click="$router.push('/editor/' + p.id)">
+            Öffnen
+          </button>
+        </li>
+      </ul>
+
+      <!-- GITHUB REPOS -->
+      <hr />
+
+      <h3>Meine GitHub Repositories</h3>
+      <ul class="project-list">
+        <li v-for="repo in githubRepos" :key="repo.id">
+          <div class="project-info">
+            <strong>{{ repo.name }}</strong>
+            <small>{{ repo.private ? "Privat" : "Öffentlich" }}</small>
+          </div>
+          <button class="open-btn"
+                  @click="$router.push('/github-editor?repo=' + repo.name + '&owner=' + repo.owner.login)">
+            Öffnen
+          </button>
+        </li>
+      </ul>
+
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .profile-page {
@@ -121,7 +182,7 @@ const handlePasswordChange = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f0f2f5; /* Hellgrauer Hintergrund */
+  background-color: #f0f2f5;
   font-family: sans-serif;
 }
 
@@ -131,7 +192,7 @@ const handlePasswordChange = async () => {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
 }
 
 h2, h3 { color: #333; margin-bottom: 20px; }
@@ -145,7 +206,7 @@ input {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  box-sizing: border-box; /* Wichtig für Padding */
+  box-sizing: border-box;
 }
 
 .readonly-input { background-color: #f9f9f9; color: #888; cursor: not-allowed; }
@@ -153,14 +214,68 @@ input {
 .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 
 .save-btn {
-  background-color: #4a90e2; /* Dein Blau aus den Nodes */
-  color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .back-btn {
-  background: none; border: 1px solid #ccc; padding: 8px; cursor: pointer; color: #666;
+  background: none;
+  border: 1px solid #ccc;
+  padding: 8px;
+  cursor: pointer;
+  color: #666;
 }
 
 .error { color: #d9534f; margin-top: 15px; font-size: 0.9rem; }
 .success { color: #5cb85c; margin-top: 15px; font-size: 0.9rem; }
+
+/* PROJEKT-LISTEN */
+
+.project-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+.project-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.project-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-info strong {
+  font-size: 1rem;
+  color: #333;
+}
+
+.project-info small {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.open-btn {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.open-btn:hover {
+  background-color: #3a78c2;
+}
+
 </style>

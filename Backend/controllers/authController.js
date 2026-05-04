@@ -120,7 +120,7 @@ exports.githubRedirect = (req, res) => {
         "https://github.com/login/oauth/authorize" +
         "?client_id=" + process.env.GITHUB_CLIENT_ID +
         "&redirect_uri=" + process.env.GITHUB_REDIRECT_URI +
-        "&scope=read:user user:email";
+        "&scope=read:user user:email repo";
 
     res.redirect(redirectUrl);
 };
@@ -160,7 +160,7 @@ exports.githubCallback = async (req, res) => {
         };
 
         // Weiter zur Login/Registrierung
-        return exports.githubLoginOrRegister(githubUser, res);
+        return exports.githubLoginOrRegister(githubUser, res, accessToken);
 
     } catch (err) {
         console.error(err);
@@ -169,21 +169,29 @@ exports.githubCallback = async (req, res) => {
 };
 
 // 3) User in DB anlegen oder einloggen
-exports.githubLoginOrRegister = (githubUser, res) => {
+exports.githubLoginOrRegister = (githubUser, res, githubAccessToken) => {
     db.get(
         "SELECT * FROM users WHERE provider = 'github' AND provider_user_id = ?",
         [githubUser.id],
         (err, user) => {
+
+            // --- USER EXISTIERT ---
             if (user) {
-                // User existiert → JWT erzeugen
+
+                // GitHub Token aktualisieren
+                db.run(
+                    "UPDATE users SET github_access_token = ? WHERE id = ?",
+                    [githubAccessToken, user.id]
+                );
+
                 const token = jwt.sign({ id: user.id }, "SECRET123", { expiresIn: "1h" });
                 return res.redirect(`http://localhost:5173/login-success?token=${token}`);
             }
 
-            // User existiert nicht → anlegen
+            // --- USER EXISTIERT NICHT → ANLEGEN ---
             db.run(
-                "INSERT INTO users (provider, provider_user_id, username, email, avatar_url) VALUES (?, ?, ?, ?, ?)",
-                ["github", githubUser.id, githubUser.name, githubUser.email, githubUser.avatar],
+                "INSERT INTO users (provider, provider_user_id, username, email, avatar_url, github_access_token) VALUES (?, ?, ?, ?, ?, ?)",
+                ["github", githubUser.id, githubUser.name, githubUser.email, githubUser.avatar, githubAccessToken],
                 function (err) {
                     if (err) return res.status(500).json({ error: "DB error" });
 
@@ -195,6 +203,37 @@ exports.githubLoginOrRegister = (githubUser, res) => {
         }
     );
 };
+
+
+exports.getGithubRepos = async (req, res) => {
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (err) return res.status(500).json({ error: "DB error" });
+            if (!row || !row.github_access_token)
+                return res.status(400).json({ error: "No GitHub token stored" });
+
+            try {
+                const repoResponse = await axios.get(
+                    "https://api.github.com/user/repos",
+                    {
+                        headers: {
+                            Authorization: `Bearer ${row.github_access_token}`,
+                            Accept: "application/vnd.github+json"
+                        }
+                    }
+                );
+
+                res.json(repoResponse.data);
+            } catch (err) {
+                console.error(err);
+                res.status(500).json({ error: "GitHub API error" });
+            }
+        }
+    );
+};
+
 
 exports.me = (req, res) => {
     db.get(

@@ -6,6 +6,7 @@ require("dotenv").config();
 const app = express();
 const authRoutes = require("./routes/auth");
 const projectRoutes = require("./routes/projects");
+const githubRoutes = require("./routes/github");
 
 // --- Express App erstellen ---
 app.use(cors());
@@ -35,14 +36,18 @@ app.get("/addtest", (req, res) => {
     res.json({ message: "Testuser hinzugefügt" });
 });
 
+app.use(express.json());
+app.use("/auth", authRoutes);
+app.use("/projects", projectRoutes);
+app.use("/github", githubRoutes);
+
+
 // --- Server starten ---
 const PORT = 3000;
 app.listen(PORT, () => {
     console.log("Backend läuft auf Port " + PORT);
 });
 
-app.use(express.json());
-app.use("/auth", authRoutes);
-app.use("/projects", projectRoutes);
+
 
 

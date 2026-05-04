@@ -50,6 +50,9 @@ db.serialize(() => {
         if (!existing.includes("updated_at")) {
             db.run("ALTER TABLE users ADD COLUMN updated_at TEXT");
         }
+        if (!existing.includes("github_access_token")) {
+            db.run("ALTER TABLE users ADD COLUMN github_access_token TEXT");
+        }
     });
 
     // 3) Projects-Tabelle erstellen
