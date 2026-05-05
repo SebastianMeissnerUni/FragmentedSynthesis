@@ -6,13 +6,9 @@ import { VueFlow, addEdge } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
 import StartupPanelContent from "@/Panels/StartupPanelContent.vue"
-
-
-
-
-
 import SaveRestoreControls from '../Controls.vue'
 import { findNodeTemplate } from '../nodes/templates'
+import type { DocElement, ParagraphElement, FigureElement } from "@/docstructure"
 
 
 
@@ -73,6 +69,60 @@ export interface EdgeMouseEvent {
 }
 
 //Globally provided data:
+const doc = ref<DocElement[]>([])
+provide("doc", doc)
+
+const addParagraphNode = (text: string, filePath: string) => {
+  const fileName = filePath.split("/").pop() ?? "Untitled"
+
+  const node: ParagraphElement = {
+    id: crypto.randomUUID(),
+    kind: "paragraph",
+    title: fileName,
+    body: text,
+    children: [],
+    sourceNodeId: fileName
+  }
+
+  doc.value.push(node)
+}
+
+const addFigureNode = (imageUrl: string, filePath: string) => {
+  const fileName = filePath.split("/").pop() ?? "image.png"
+
+  const node: FigureElement = {
+    id: crypto.randomUUID(),
+    kind: "figure",
+    title: fileName,
+    body: "",
+    children: [],
+    imageName: fileName,
+    latexLabel: fileName.replace(".png", ""),
+    label: "fig:" + crypto.randomUUID()
+  }
+
+  doc.value.push(node)
+}
+
+provide("openInEditor", async (file: { type: "txt" | "png", path: string, repo: any }) => {
+  const token = localStorage.getItem("token")
+
+  if (file.type === "txt") {
+    const res = await fetch(
+        `http://localhost:3000/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+    )
+
+    const data = await res.json()
+    addParagraphNode(data.content, file.path)
+  }
+
+  if (file.type === "png") {
+    const imageUrl = `https://raw.githubusercontent.com/${file.repo.owner.login}/${file.repo.name}/main/${file.path}`
+    addFigureNode(imageUrl, file.path)
+  }
+})
+
 const snapshots = ref<Snapshot[]>([])
 provide('snapshots', snapshots)
 
@@ -363,7 +413,6 @@ watch(nodes, (newNodes) => {
   }
 }, { deep: true })
 
-
 watch(designMode, (mode) => {
   if (mode === 'disco') {
     startDiscoEdges()
@@ -372,10 +421,28 @@ watch(designMode, (mode) => {
   }
 })
 
-
 onUnmounted(() => {
   if (discoInterval) {
     clearInterval(discoInterval)
+  }
+})
+
+provide("openInEditor", async (file: { type: "txt" | "png", path: string, repo: any }) => {
+  const token = localStorage.getItem("token")
+
+  if (file.type === "txt") {
+    const res = await fetch(
+        `http://localhost:3000/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+    )
+
+    const data = await res.json()
+    addParagraphNode(data.content, file.path)
+  }
+
+  if (file.type === "png") {
+    const imageUrl = `https://raw.githubusercontent.com/${file.repo.owner.login}/${file.repo.name}/main/${file.path}`
+    addFigureNode(imageUrl, file.path)
   }
 })
 

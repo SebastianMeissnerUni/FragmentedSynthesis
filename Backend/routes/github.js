@@ -31,6 +31,40 @@ router.get("/repos", authenticateToken, (req, res) => {
 });
 
 // Dateien eines Repos
+router.get("/repo-files", authenticateToken, (req, res) => {
+    const { repo, owner } = req.query;
+
+    if (!repo || !owner) {
+        return res.status(400).json({ error: "Missing repo or owner" });
+    }
+
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (!row || !row.github_access_token) {
+                return res.status(400).json({ error: "No GitHub token stored" });
+            }
+
+            try {
+                const url = `https://api.github.com/repos/${owner}/${repo}/contents`;
+                const response = await axios.get(url, {
+                    headers: {
+                        Authorization: `Bearer ${row.github_access_token}`,
+                        Accept: "application/vnd.github+json"
+                    }
+                });
+
+                res.json(response.data);
+            } catch (e) {
+                console.log(e.response?.data);
+                res.status(500).json({ error: "GitHub API error" });
+            }
+        }
+    );
+});
+
+// Dateien eines Repos
 router.get("/files", authenticateToken, (req, res) => {
     const { repo, owner } = req.query;
 

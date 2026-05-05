@@ -15,7 +15,40 @@ const message = ref<{text: string, type: 'error' | 'success'} | null>(null)
 const userEmail = ref('')
 const githubRepos = ref<GitHubRepo[]>([])
 const localProjects = ref<any[]>([])
+const openInEditor = inject("openInEditor")
+const repoOpen = ref<Record<number, boolean>>({})
+const repoFiles = ref<Record<number, any[]>>({})
 
+
+const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
+  if (!openInEditor) return
+
+  const lower = filePath.toLowerCase()
+
+  if (fileType === "file") {
+    if (lower.endsWith(".txt")) {
+      openInEditor({ type: "txt", path: filePath, repo })
+    }
+    if (lower.endsWith(".png")) {
+      openInEditor({ type: "png", path: filePath, repo })
+    }
+  }
+}
+
+const toggleRepo = async (repo: GitHubRepo) => {
+  repoOpen.value[repo.id] = !repoOpen.value[repo.id]
+
+  if (!repoOpen.value[repo.id]) return
+
+  if (!repoFiles.value[repo.id]) {
+    const token = localStorage.getItem("token")
+    const res = await fetch(
+        `http://localhost:3000/github/repo-files?owner=${repo.owner.login}&repo=${repo.name}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+    )
+    repoFiles.value[repo.id] = await res.json()
+  }
+}
 
 onMounted(async () => {
 
@@ -27,6 +60,7 @@ onMounted(async () => {
     headers: { "Authorization": `Bearer ${token}` }
   })
 
+  
   const data = await res.json()
 
   if (res.ok) {
@@ -38,6 +72,7 @@ onMounted(async () => {
     headers: { "Authorization": `Bearer ${token}` }
   })
   localProjects.value = await projRes.json()
+
 
   // --- 3) GitHub Repositories laden ---
   const ghRes = await fetch("http://localhost:3000/github/repos", {
@@ -97,10 +132,6 @@ const handlePasswordChange = async () => {
     message.value = { text: "Verbindung zum Server fehlgeschlagen", type: "error" };
   }
 };
-
-
-
-
 </script>
 
 <template>
@@ -159,18 +190,36 @@ const handlePasswordChange = async () => {
 
       <h3>Meine GitHub Repositories</h3>
       <ul class="project-list">
-        <li v-for="repo in githubRepos" :key="repo.id">
-          <div class="project-info">
-            <strong>{{ repo.name }}</strong>
-            <small>{{ repo.private ? "Privat" : "Öffentlich" }}</small>
+        <li v-for="repo in githubRepos" :key="repo.id" class="repo-item">
+
+          <!-- Kopfzeile -->
+          <div class="repo-header" @click="toggleRepo(repo)">
+            <div class="project-info">
+              <strong>{{ repo.name }}</strong>
+              <small>{{ repo.private ? "Privat" : "Öffentlich" }}</small>
+            </div>
+
+            <span class="arrow" :class="{ open: repoOpen[repo.id] }">▸</span>
           </div>
-          <button class="open-btn"
-                  @click="$router.push('/github-editor?repo=' + repo.name + '&owner=' + repo.owner.login)">
-            Öffnen
-          </button>
+
+          <!-- Akkordeon-Inhalt -->
+          <div v-if="repoOpen[repo.id]" class="repo-content">
+
+            <p v-if="!repoFiles[repo.id]">Lade Dateien...</p>
+
+            <ul v-else class="file-list">
+              <li v-for="file in repoFiles[repo.id]" :key="file.path">
+
+          <span class="file"
+                @click="openFile(repo, file.path, file.type)"
+                style="cursor: pointer;">
+            {{ file.type === 'dir' ? '📁' : '📄' }} {{ file.name }}
+          </span>
+              </li>
+            </ul>
+          </div>
         </li>
       </ul>
-
     </div>
   </div>
 </template>
@@ -277,5 +326,41 @@ input {
 .open-btn:hover {
   background-color: #3a78c2;
 }
+
+.repo-item {
+  display: block !important;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.repo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.repo-content {
+  margin-top: 10px;
+  padding-left: 10px;
+}
+
+.file-list {
+  list-style: none;
+  padding-left: 15px;
+}
+
+.file-list li {
+  padding: 4px 0;
+}
+
+.arrow {
+  transition: transform 0.2s ease;
+}
+
+.arrow.open {
+  transform: rotate(90deg);
+}
+
 
 </style>
