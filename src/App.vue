@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { provide } from 'vue'
 import ProfileButton from '@/components/ProfileButton.vue'
+
+provide('openInEditor', (file) => {
+  console.log("Öffne Datei:", file)
+})
 </script>
 
 <template>

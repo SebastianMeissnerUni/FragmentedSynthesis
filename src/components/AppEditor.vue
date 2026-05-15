@@ -1,5 +1,5 @@
 <script setup lang="ts">
-
+import { inject } from 'vue'
 import { ref, watch, provide, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { type Node, type Edge, type Connection, useVueFlow } from '@vue-flow/core'
 import { VueFlow, addEdge } from '@vue-flow/core'
@@ -10,6 +10,8 @@ import SaveRestoreControls from '../Controls.vue'
 import { findNodeTemplate } from '../nodes/templates'
 import type { DocElement, ParagraphElement, FigureElement } from "@/docstructure"
 
+
+const openInEditor = inject<(file: any) => void>('openInEditor')
 
 
 //Import every node-component:
@@ -447,7 +449,7 @@ provide("openInEditor", async (file: { type: "txt" | "png", path: string, repo: 
 })
 
 
-
+provide('openInEditor', openInEditor)
 </script>
 
 <template>

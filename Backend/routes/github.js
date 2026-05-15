@@ -32,7 +32,7 @@ router.get("/repos", authenticateToken, (req, res) => {
 
 // Dateien eines Repos
 router.get("/repo-files", authenticateToken, (req, res) => {
-    const { repo, owner } = req.query;
+    const { repo, owner, path = "" } = req.query;
 
     if (!repo || !owner) {
         return res.status(400).json({ error: "Missing repo or owner" });
@@ -47,7 +47,7 @@ router.get("/repo-files", authenticateToken, (req, res) => {
             }
 
             try {
-                const url = `https://api.github.com/repos/${owner}/${repo}/contents`;
+                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
                 const response = await axios.get(url, {
                     headers: {
                         Authorization: `Bearer ${row.github_access_token}`,
@@ -63,6 +63,7 @@ router.get("/repo-files", authenticateToken, (req, res) => {
         }
     );
 });
+
 
 // Dateien eines Repos
 router.get("/files", authenticateToken, (req, res) => {
@@ -168,5 +169,4 @@ router.post("/save", authenticateToken, (req, res) => {
     );
 });
 
-// GANZ AM ENDE
 module.exports = router;

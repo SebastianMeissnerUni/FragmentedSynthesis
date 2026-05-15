@@ -15,10 +15,37 @@ const message = ref<{text: string, type: 'error' | 'success'} | null>(null)
 const userEmail = ref('')
 const githubRepos = ref<GitHubRepo[]>([])
 const localProjects = ref<any[]>([])
-const openInEditor = inject("openInEditor")
+const openInEditor = inject<(file: any) => void>('openInEditor')
 const repoOpen = ref<Record<number, boolean>>({})
 const repoFiles = ref<Record<number, any[]>>({})
+const folderOpen = ref<Record<string, boolean>>({})
 
+
+const toggleFolder = (path: string) => {
+  folderOpen.value[path] = !folderOpen.value[path]
+}
+
+async function loadRepoFilesRecursively(repo: GitHubRepo, path = '') {
+  const token = localStorage.getItem("token")
+
+  const res = await fetch(
+      `http://localhost:3000/github/repo-files?owner=${repo.owner.login}&repo=${repo.name}&path=${path}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+  )
+
+  const items = await res.json()
+
+  // Für jeden Ordner: Kinder laden
+  return await Promise.all(
+      items.map(async (item: any) => {
+        if (item.type === "dir") {
+          const children = await loadRepoFilesRecursively(repo, item.path)
+          return { ...item, children }
+        }
+        return item
+      })
+  )
+}
 
 const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
   if (!openInEditor) return
@@ -41,12 +68,7 @@ const toggleRepo = async (repo: GitHubRepo) => {
   if (!repoOpen.value[repo.id]) return
 
   if (!repoFiles.value[repo.id]) {
-    const token = localStorage.getItem("token")
-    const res = await fetch(
-        `http://localhost:3000/github/repo-files?owner=${repo.owner.login}&repo=${repo.name}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-    )
-    repoFiles.value[repo.id] = await res.json()
+    repoFiles.value[repo.id] = await loadRepoFilesRecursively(repo)
   }
 }
 
@@ -207,14 +229,88 @@ const handlePasswordChange = async () => {
 
             <p v-if="!repoFiles[repo.id]">Lade Dateien...</p>
 
-            <ul v-else class="file-list">
+            <ul class="file-list">
               <li v-for="file in repoFiles[repo.id]" :key="file.path">
 
-          <span class="file"
-                @click="openFile(repo, file.path, file.type)"
-                style="cursor: pointer;">
-            {{ file.type === 'dir' ? '📁' : '📄' }} {{ file.name }}
-          </span>
+                <!-- ORDNER -->
+                <div
+                    v-if="file.type === 'dir'"
+                    class="folder"
+                    @click="toggleFolder(file.path)"
+                    style="cursor: pointer;"
+                >
+                  <span>{{ folderOpen[file.path] ? '📂' : '📁' }}</span>
+                  {{ file.name }}
+                </div>
+
+                <!-- DATEI -->
+                <div
+                    v-else
+                    class="file"
+                    @click="openFile(repo, file.path, 'file')"
+                    style="cursor: pointer;"
+                >
+                  📄 {{ file.name }}
+                </div>
+
+                <!-- KINDER DES ORDNER -->
+                <ul
+                    v-if="file.type === 'dir' && folderOpen[file.path]"
+                    class="nested"
+                    style="margin-left: 20px;"
+                >
+                  <li v-for="child in file.children" :key="child.path">
+
+                    <!-- Unterordner -->
+                    <div
+                        v-if="child.type === 'dir'"
+                        class="folder"
+                        @click="toggleFolder(child.path)"
+                        style="cursor: pointer;"
+                    >
+                      <span>{{ folderOpen[child.path] ? '📂' : '📁' }}</span>
+                      {{ child.name }}
+                    </div>
+
+                    <!-- Datei -->
+                    <div
+                        v-else
+                        class="file"
+                        @click="openFile(repo, child.path, 'file')"
+                        style="cursor: pointer;"
+                    >
+                      📄 {{ child.name }}
+                    </div>
+
+                    <!-- REKURSION: Unterordner -->
+                    <ul
+                        v-if="child.type === 'dir' && folderOpen[child.path]"
+                        class="nested"
+                        style="margin-left: 20px;"
+                    >
+                      <li v-for="sub in child.children" :key="sub.path">
+
+                        <div
+                            v-if="sub.type === 'dir'"
+                            class="folder"
+                            @click="toggleFolder(sub.path)"
+                            style="cursor: pointer;"
+                        >
+                          <span>{{ folderOpen[sub.path] ? '📂' : '📁' }}</span>
+                          {{ sub.name }}
+                        </div>
+                        <div
+                            v-else
+                            class="file"
+                            @click="openFile(repo, sub.path, 'file')"
+                            style="cursor: pointer;"
+                        >
+                          📄 {{ sub.name }}
+                        </div>
+                      </li>
+                    </ul>
+                  </li>
+                </ul>
               </li>
             </ul>
           </div>
