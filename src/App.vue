@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { provide } from 'vue'
+import { provide,ref } from 'vue'
 import ProfileButton from '@/components/ProfileButton.vue'
+
+
 
 provide('openInEditor', (file) => {
   console.log("Öffne Datei:", file)
 })
+
+
 </script>
 
 <template>
   <div class="app-container">
     <header class="topbar">
-      <ProfileButton />
+      <ProfileButton @open-profile="showProfile = true" />
     </header>
-
     <router-view />
   </div>
 </template>

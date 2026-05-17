@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref, watch, inject, nextTick, provide, type Ref} from 'vue'
+import {computed, ref, watch, inject, nextTick, provide, onMounted, type Ref} from 'vue'
 import JSZip from 'jszip'
 import { parseLatexToNodesAndEdges } from '@/api/NewLatexParser.ts'
 import {useDemo} from "@/api/demo.ts";
@@ -23,6 +23,12 @@ const emit = defineEmits<{
 // local ui state
 const showIntro = ref(true)
 const showLatexFilePicker = ref(false)
+onMounted(() => {
+  const seen = sessionStorage.getItem("introSeen")
+  if (seen === "true") {
+    showIntro.value = false
+  }
+})
 
 
 //file upload variables
@@ -109,7 +115,9 @@ async function onLatexZipUpload(file: File) {
     uploadedFiles.value = files
     selectedMainTex.value = null
     showLatexFilePicker.value = true
+    sessionStorage.setItem("introSeen", "true")
     showIntro.value = false
+
   }
 
   reader.readAsArrayBuffer(file)
@@ -151,18 +159,24 @@ function importLatexProject() {
 
 
 function handleStartDemo() {
+  sessionStorage.setItem("introSeen", "true")
   showIntro.value = false
   startDemo()
 }
 
+
 function handleSkipDemo() {
+  sessionStorage.setItem("introSeen", "true")
   showIntro.value = false
   skipDemo()
 }
 
+
 function handleUploadFile() {
+  sessionStorage.setItem("introSeen", "true")
   showIntro.value = false
 }
+
 
 
 

@@ -5,17 +5,21 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const open = ref(false)
 const wrapper = ref<HTMLElement | null>(null)
+const emit = defineEmits(['open-profile'])
+
 
 function toggleMenu() {
   open.value = !open.value
 }
 
 function goToProfile() {
-  router.push('/profile')
   open.value = false
+  emit('open-profile')
 }
 
+
 function logout() {
+  sessionStorage.removeItem("introSeen")
   localStorage.removeItem('token')
   localStorage.removeItem('guest')
   router.push('/login')

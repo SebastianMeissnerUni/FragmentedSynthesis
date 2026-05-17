@@ -19,6 +19,8 @@ const openInEditor = inject<(file: any) => void>('openInEditor')
 const repoOpen = ref<Record<number, boolean>>({})
 const repoFiles = ref<Record<number, any[]>>({})
 const folderOpen = ref<Record<string, boolean>>({})
+const emit = defineEmits(['close'])
+
 
 
 const toggleFolder = (path: string) => {
@@ -157,7 +159,8 @@ const handlePasswordChange = async () => {
 </script>
 
 <template>
-  <div class="profile-page">
+  <div class="profile-overlay" @click.stop>
+    <div class="profile-box" @click.stop>
     <div class="profile-card">
       <h2>Profil-Einstellungen</h2>
 
@@ -186,7 +189,7 @@ const handlePasswordChange = async () => {
 
       <div class="actions">
         <button class="save-btn" @click="handlePasswordChange">Passwort aktualisieren</button>
-        <button class="back-btn" @click="$router.push('/main')">Zurück zum Editor</button>
+        <button class="back-btn" @click="$emit('close')">Zurück zum Editor</button>
       </div>
 
       <p v-if="message" :class="message.type">{{ message.text }}</p>
@@ -318,26 +321,42 @@ const handlePasswordChange = async () => {
       </ul>
     </div>
   </div>
+  </div>
 </template>
 
 
 <style scoped>
-.profile-page {
+
+/* OVERLAY */
+.profile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.4);
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  background-color: #f0f2f5;
-  font-family: sans-serif;
+  z-index: 999999;
 }
 
-.profile-card {
+/* BOX */
+.profile-box {
   background: white;
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   width: 100%;
   max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 1000000;
+}
+
+/* INHALT */
+.profile-card {
+  width: 100%;
 }
 
 h2, h3 { color: #333; margin-bottom: 20px; }
@@ -378,8 +397,7 @@ input {
 .error { color: #d9534f; margin-top: 15px; font-size: 0.9rem; }
 .success { color: #5cb85c; margin-top: 15px; font-size: 0.9rem; }
 
-/* PROJEKT-LISTEN */
-
+/* LISTEN */
 .project-list {
   list-style: none;
   padding: 0;
@@ -457,6 +475,4 @@ input {
 .arrow.open {
   transform: rotate(90deg);
 }
-
-
 </style>
