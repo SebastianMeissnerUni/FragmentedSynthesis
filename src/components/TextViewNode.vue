@@ -105,6 +105,24 @@ function deleteNode() {
   removeNodes([props.id])
 }
 
+function onInput(event: Event) {
+  const newText = (event.target as HTMLTextAreaElement).value
+
+  // VueFlow Node aktualisieren
+  setNodes((nds) =>
+      nds.map((n) =>
+          n.id === props.id
+              ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  text: newText
+                }
+              }
+              : n
+      )
+  )
+}
 
 </script>
 
@@ -125,15 +143,16 @@ function deleteNode() {
       <textarea
           class="text-view-node__textarea"
           @wheel.stop
-          :value="displayText"
-          readonly
+          :value="props.data.text ?? displayText"
+          @input="onInput"
           spellcheck="false"
           :placeholder="placeholder"
-          aria-label="Debug Node output"
+          aria-label="Paragraph content"
       />
+
     </section>
 
-    <Handle id="input" type="target" :position="Position.Left" />
+    <Handle id="output" type="source" :position="Position.Right" />
   </div>
 </template>
 

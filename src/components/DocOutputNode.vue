@@ -166,6 +166,11 @@ function edgeToDoc(edge?: Edge): DocElement | undefined {
     }
   }
 
+  const text = payload.text
+  if (typeof text === 'string' && text.trim()) {
+    return promoteStringToParagraph(edge.source, text.trim())
+  }
+
   const value = payload.value
   if (typeof value === 'string' && value.trim()) {
     return promoteStringToParagraph(edge.source, value.trim())

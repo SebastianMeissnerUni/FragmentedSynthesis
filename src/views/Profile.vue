@@ -50,19 +50,27 @@ async function loadRepoFilesRecursively(repo: GitHubRepo, path = '') {
 }
 
 const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
-  if (!openInEditor) return
+  console.log('[Profile] openFile clicked:', { filePath, fileType })
+
+  if (!openInEditor) {
+    console.warn('[Profile] openInEditor is undefined')
+    return
+  }
 
   const lower = filePath.toLowerCase()
 
   if (fileType === "file") {
-    if (lower.endsWith(".txt")) {
+    if (lower.endsWith(".tex")) {
+      console.log('[Profile] calling openInEditor for TEX')
       openInEditor({ type: "txt", path: filePath, repo })
     }
     if (lower.endsWith(".png")) {
+      console.log('[Profile] calling openInEditor for PNG')
       openInEditor({ type: "png", path: filePath, repo })
     }
   }
 }
+
 
 const toggleRepo = async (repo: GitHubRepo) => {
   repoOpen.value[repo.id] = !repoOpen.value[repo.id]

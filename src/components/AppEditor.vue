@@ -10,10 +10,6 @@ import SaveRestoreControls from '../Controls.vue'
 import { findNodeTemplate } from '../nodes/templates'
 import type { DocElement, ParagraphElement, FigureElement } from "@/docstructure"
 
-
-const openInEditor = inject<(file: any) => void>('openInEditor')
-
-
 //Import every node-component:
 import TextAreaNode from './TextAreaNode.vue'
 import TextViewNode from './TextViewNode.vue'
@@ -28,6 +24,8 @@ import TourGuideNode from './TourGuideNode.vue'
 import MagicLatexNode from './MagicLatexNode.vue'
 
 //Interfaces for globally provided data:
+
+const openInEditor = inject("openInEditor")
 
 export interface BibEntry {
   id: string
@@ -77,8 +75,10 @@ provide("doc", doc)
 const addParagraphNode = (text: string, filePath: string) => {
   const fileName = filePath.split("/").pop() ?? "Untitled"
 
+  // 1) Doc-Node erzeugen
+  const id = crypto.randomUUID()
   const node: ParagraphElement = {
-    id: crypto.randomUUID(),
+    id,
     kind: "paragraph",
     title: fileName,
     body: text,
@@ -87,13 +87,30 @@ const addParagraphNode = (text: string, filePath: string) => {
   }
 
   doc.value.push(node)
+
+  // 2) VueFlow-Node erzeugen
+  addNodes([
+    {
+      id,
+      type: "textView",
+      position: { x: 200, y: 200 },
+      data: {
+        label: fileName,
+        text: text
+      },
+      dragHandle: ".doc-node__header"
+    }
+  ])
+  console.log("[AppEditor] ParagraphNode created:", id)
 }
 
 const addFigureNode = (imageUrl: string, filePath: string) => {
   const fileName = filePath.split("/").pop() ?? "image.png"
 
+  // 1) Doc-Node erzeugen
+  const id = crypto.randomUUID()
   const node: FigureElement = {
-    id: crypto.randomUUID(),
+    id,
     kind: "figure",
     title: fileName,
     body: "",
@@ -104,26 +121,55 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
   }
 
   doc.value.push(node)
+
+  // 2) VueFlow-Node erzeugen (sichtbar im Editor)
+  addNodes([
+    {
+      id,
+      type: "figureNode",      // dein Node-Typ für Bilder
+      position: { x: 300, y: 300 },
+      data: {
+        src: imageUrl,
+        label: fileName
+      },
+      dragHandle: ".doc-node__header"
+    }
+  ])
+  console.log("[AppEditor] ParagraphNode created:", id)
 }
 
-provide("openInEditor", async (file: { type: "txt" | "png", path: string, repo: any }) => {
+console.log('[AppEditor] setting up editor-open-file listener')
+
+window.addEventListener("editor-open-file", async (e: any) => {
+  console.log('[AppEditor] editor-open-file received:', e.detail)
+
+  const file = e.detail as { type: "txt" | "png", path: string, repo: any }
   const token = localStorage.getItem("token")
 
+  if (!token) {
+    console.warn('[AppEditor] no token, aborting')
+    return
+  }
+
   if (file.type === "txt") {
+    console.log('[AppEditor] loading TEX/TXT file:', file.path)
     const res = await fetch(
         `http://localhost:3000/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
         { headers: { Authorization: `Bearer ${token}` } }
     )
-
     const data = await res.json()
     addParagraphNode(data.content, file.path)
   }
 
   if (file.type === "png") {
-    const imageUrl = `https://raw.githubusercontent.com/${file.repo.owner.login}/${file.repo.name}/main/${file.path}`
+    console.log('[AppEditor] loading PNG file:', file.path)
+    const imageUrl =
+        `https://raw.githubusercontent.com/${file.repo.owner.login}/${file.repo.name}/main/${file.path}`
     addFigureNode(imageUrl, file.path)
   }
 })
+
+
 
 const snapshots = ref<Snapshot[]>([])
 provide('snapshots', snapshots)
@@ -428,28 +474,6 @@ onUnmounted(() => {
     clearInterval(discoInterval)
   }
 })
-
-provide("openInEditor", async (file: { type: "txt" | "png", path: string, repo: any }) => {
-  const token = localStorage.getItem("token")
-
-  if (file.type === "txt") {
-    const res = await fetch(
-        `http://localhost:3000/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-    )
-
-    const data = await res.json()
-    addParagraphNode(data.content, file.path)
-  }
-
-  if (file.type === "png") {
-    const imageUrl = `https://raw.githubusercontent.com/${file.repo.owner.login}/${file.repo.name}/main/${file.path}`
-    addFigureNode(imageUrl, file.path)
-  }
-})
-
-
-provide('openInEditor', openInEditor)
 </script>
 
 <template>

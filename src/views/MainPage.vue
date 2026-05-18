@@ -15,11 +15,10 @@ if (!token && !guest) {
   window.location.href = "/login"
 }
 
-// provide für Profile.vue
-provide('openInEditor', (file) => {
-  console.log("Öffne Datei:", file)
+provide("openInEditor", (file) => {
+  console.log('[MainPage] openInEditor called with:', file)
+  window.dispatchEvent(new CustomEvent("editor-open-file", { detail: file }))
 })
-
 // Overlay‑State
 const showProfile = ref(false)
 </script>
