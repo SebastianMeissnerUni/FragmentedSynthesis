@@ -151,8 +151,14 @@ function importLatexProject() {
   })
 
   setNodes(parsedNodes)
-  console.log('nodes after import', nodes.value.length)
-  setEdges(parsedEdges)
+  console.log('[IMPORT] nodes after parse:', parsedNodes.map(n => ({
+    id: n.id,
+    type: n.type,
+    label: (n as any).data?.label,
+    imageName: (n as any).data?.imageName,
+    hasImage: !!(n as any).data?.image,
+  })))
+
 
   showLatexFilePicker.value = false
 }
@@ -192,10 +198,11 @@ function handleUploadFile() {
       <p>What would you like to do?</p>
       <div class="demo-buttons">
         <label class="skip-button upload-label" @click="handleSkipDemo">Start Empty Project</label>
-        <label class="skip-button upload-label" @change="restoreFromFile" @click="handleUploadFile">
+        <label class="skip-button upload-label" @click="handleUploadFile">
           Upload Project from File
-          <input accept=".json" type="file"/>
+          <input accept=".json" type="file" @change="restoreFromFile"/>
         </label>
+
 
         <label class="skip-button upload-label">
           Upload LaTeX-File (.zip)

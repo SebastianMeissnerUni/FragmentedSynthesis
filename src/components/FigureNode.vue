@@ -23,6 +23,14 @@ interface FigureNodeProps extends NodeProps<FigureNodeData> {}
 
 const bibliography = inject<Ref<BibEntry[]>>('bibliography')!
 const props = defineProps<FigureNodeProps>()
+console.log('[FIGURE NODE] mounted with data:', {
+  id: props.id,
+  label: props.data?.label,
+  imageName: props.data?.imageName,
+  hasImage: !!props.data?.image,
+  imagePreview: props.data?.image?.slice?.(0, 30),
+})
+
 const { updateNodeData, removeNodes } = useVueFlow()
 
 
@@ -30,15 +38,22 @@ const refLabel = ref(props.data?.refLabel ?? randomRefLabel())
 
 
 const imageSrc = computed(() => {
-  // falls direkte Base64 im Node gespeichert ist
-  if (props.data?.image) return props.data.image as string
-
-  // ansonsten das zentrale imageCache-Objekt verwenden (bestehender Ansatz)
+  const direct = props.data?.image
   const name = props.data?.imageName
-  if (name && imageCache?.value?.[name]) return imageCache.value[name].base64
+  const cached = name && imageCache?.value?.[name]?.base64
 
+  console.log('[FIGURE NODE] imageSrc compute:', {
+    id: props.id,
+    imageName: name,
+    hasDirect: !!direct,
+    hasCache: !!cached,
+  })
+
+  if (direct) return direct as string
+  if (cached) return cached
   return undefined
 })
+
 
 
 
@@ -271,27 +286,26 @@ watch(latexLabel, (currentLabel) => {
 })
 
 onMounted(() => {
-  // 1) Git-Bild → NICHT cachen
-  if (props.data?.image?.startsWith("http")) {
+  // 1) Git-Bild NICHT cachen
+  if (typeof props.data?.image === "string" && props.data.image.startsWith("http")) {
     scanCitationsFromLatexLabel()
     return
   }
 
-  // 2) Upload-Bild → cachen
-  if (props.data?.image && props.data.imageName && imageCache) {
+  // 2) Upload-Bild cachen
+  if (typeof props.data?.image === "string" && props.data.imageName && imageCache) {
     imageCache.value[props.data.imageName] = {
       base64: props.data.image,
       refLabel: refLabel.value,
       latexLabel: latexLabel.value,
     }
 
-    // Bild bleibt im Cache, aber Node soll nur den Key speichern
-    syncDataDownstream({ image: undefined })
+    syncDataDownstream({})
   }
+
 
   scanCitationsFromLatexLabel()
 
-  // ResizeObserver wie gehabt
   if (!nodeRef.value) return
 
   resizeObs = new ResizeObserver(entries => {

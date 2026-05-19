@@ -237,25 +237,53 @@ function blockToNode(
     switch (block.type) {
         case 'figure': {
             const imgFile = resolveImageFile(files, block.imagePath)
-            if (!imgFile || typeof imgFile.content !== 'string') return null
+            console.log('[PARSER] figure block:', {
+                imagePath: block.imagePath,
+                caption: block.caption,
+                imgFileType: imgFile?.type,
+                imgFilePath: imgFile?.path,
+                hasContent: typeof imgFile?.content === 'string',
+            })
+
+            if (!imgFile || typeof imgFile.content !== 'string') {
+                console.warn('[PARSER] NO imgFile for figure, skipping node')
+                return null
+            }
 
             const figKey = randomFigureKey()
 
+            console.log('[PARSER] creating figureNode:', {
+                figKey,
+                imageName: figKey,
+                contentPreview: (imgFile.content as string).slice(0, 30),
+            })
+
+            if (imageCache?.value) {
+                imageCache.value[figKey] = {
+                    base64: imgFile.content as string,
+                    refLabel: figKey,
+                    latexLabel: block.caption,
+                }
+                console.log('[PARSER] imageCache entry set for', figKey)
+            }
+
             return {
                 id: nextId(),
-                type: 'figure',
+                type: 'figureNode',
                 position: { x: 0, y: 0 },
                 data: {
-                    label: 'Figure',
+                    label: block.caption || 'Figure',
                     image: imgFile.content,
                     imageName: figKey,
                     refLabel: figKey,
                     latexLabel: block.caption,
+                    kind: 'figure',
                     citations: []
                 },
                 dragHandle: '.doc-node__header'
             }
         }
+
 
         case 'raw':
             return {

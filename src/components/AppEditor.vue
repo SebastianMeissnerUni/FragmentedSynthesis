@@ -35,8 +35,11 @@ export interface BibEntry {
 export interface ImageCacheEntry {
   base64: string
   refLabel: string
-  latexLabel?: string
+  latexLabel: string
 }
+
+export type ImageCache = Record<string, ImageCacheEntry>
+
 
 export interface Snapshot {
   id: string
@@ -205,7 +208,6 @@ provide('TLDR', TLDR)
 const demoActive = ref(false)
 provide('demoActive', demoActive)
 
-export type ImageCache = Record<string, ImageCacheEntry>
 const imageCache = ref<ImageCache>({})
 provide('imageCache', imageCache)
 
