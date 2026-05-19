@@ -43,14 +43,14 @@ export const nodeTemplates: NodeTemplate[] = [
     },
   },
   {
-    type: 'figure',
+    type: 'figureNode',
     label: 'Figure',
     category: 'text',
     data: {
-      image: '' as string,
-      imageName: '' as string,
-      latexLabel: '' as string,
-      citations: [] as string[]
+      image: '',
+      imageName: null,   // oder undefined
+      latexLabel: '',
+      citations: []
     }
   },
   {

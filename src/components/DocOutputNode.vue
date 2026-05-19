@@ -153,10 +153,39 @@ function promoteStringToParagraph(id: string, text: string): ParagraphElement {
 
 function edgeToDoc(edge?: Edge): DocElement | undefined {
   if (!edge) return undefined
+  if (edge.data && typeof edge.data === "object") {
+    const fig = edge.data as any
+    if (fig.type === "figure") {
+      return {
+        id: edge.source,
+        kind: "figure",
+        title: fig.imageName,
+        body: "",
+        children: [],
+        imageName: fig.imageName,
+        latexLabel: fig.latexLabel,
+        label: fig.ref
+      }
+    }
+  }
   const source = nodes.value.find((node) => node.id === edge.source)
   if (!source?.data) return undefined
 
   const payload = source.data as Record<string, unknown>
+
+  if (payload.kind === "figure" || payload.type === "figure" || payload.type === "figureNode") {
+    return {
+      id: edge.source,
+      kind: "figure",
+      title: payload.imageName as string,
+      body: "",
+      children: [],
+      imageName: payload.imageName as string,
+      latexLabel: payload.latexLabel as string,
+      label: payload.refLabel as string
+    } as FigureElement
+  }
+
   const rawJson = payload.json
   if (typeof rawJson === 'string' && rawJson.trim()) {
     try {
@@ -178,7 +207,6 @@ function edgeToDoc(edge?: Edge): DocElement | undefined {
 
   return undefined
 }
-
 
 function describeDoc(doc?: DocElement): string {
   if (!doc) return ''
@@ -239,7 +267,7 @@ function buildOutline(doc: DocElement, currentSectionLevel: number, acc: Outline
     const label =
         doc.kind === 'paragraph'
             ? (doc.body?.trim()?.split(/\s+/).slice(0, 12).join(' ') || 'Paragraph')
-            : (doc.latexLabel || 'Figure')
+            : (doc.latexLabel || doc.imageName || 'Figure')
 
     acc.push({
       id: doc.id,

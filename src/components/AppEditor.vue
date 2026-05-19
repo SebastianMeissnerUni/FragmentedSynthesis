@@ -25,8 +25,6 @@ import MagicLatexNode from './MagicLatexNode.vue'
 
 //Interfaces for globally provided data:
 
-const openInEditor = inject("openInEditor")
-
 export interface BibEntry {
   id: string
   type: string
@@ -105,9 +103,18 @@ const addParagraphNode = (text: string, filePath: string) => {
 }
 
 const addFigureNode = (imageUrl: string, filePath: string) => {
-  const fileName = filePath.split("/").pop() ?? "image.png"
+  // Dateiname aus filePath ODER aus der URL extrahieren
+  let fileName = filePath?.split("/").pop() ?? null
 
-  // 1) Doc-Node erzeugen
+  if (!fileName || !fileName.includes(".")) {
+    const urlName = imageUrl.split("/").pop()
+    if (urlName && urlName.includes(".")) {
+      fileName = urlName
+    } else {
+      fileName = "image.png"
+    }
+  }
+
   const id = crypto.randomUUID()
   const node: FigureElement = {
     id,
@@ -116,26 +123,30 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
     body: "",
     children: [],
     imageName: fileName,
-    latexLabel: fileName.replace(".png", ""),
+    latexLabel: fileName.replace(/\.[^.]+$/, ""), // entfernt .png/.jpg/etc.
     label: "fig:" + crypto.randomUUID()
   }
 
   doc.value.push(node)
 
-  // 2) VueFlow-Node erzeugen (sichtbar im Editor)
   addNodes([
     {
       id,
-      type: "figureNode",      // dein Node-Typ für Bilder
+      type: "figureNode",
       position: { x: 300, y: 300 },
       data: {
-        src: imageUrl,
-        label: fileName
+        image: imageUrl,
+        imageName: fileName,
+        label: fileName,
+        refLabel: "fig-" + crypto.randomUUID(),
+        latexLabel: fileName.replace(/\.[^.]+$/, ""),
+        kind: "figure"
       },
       dragHandle: ".doc-node__header"
     }
   ])
-  console.log("[AppEditor] ParagraphNode created:", id)
+
+  console.log("[AppEditor] FigureNode created:", id, fileName)
 }
 
 console.log('[AppEditor] setting up editor-open-file listener')
@@ -447,7 +458,7 @@ provide('userEmail', userEmail);
 
 watch(nodes, (newNodes) => {
   const usedRefLabels = new Set(newNodes
-      .filter(n => n.type === 'figure')  // nur Figure Nodes
+      .filter(n => n.type === 'figureNode')  // nur Figure Nodes
       .map(n => n.data?.refLabel)
       .filter(Boolean) as string[]
   )
@@ -542,7 +553,7 @@ onUnmounted(() => {
       <template #node-edit="p"><EditNode v-bind="p" /></template>
       <template #node-grammar="p"><GrammarNode v-bind="p" /></template>
       <template #node-stickyNote="p"><StickyNote v-bind="p" /></template>
-      <template #node-figure="p"><FigureNode v-bind="p"/></template>
+      <template #node-figureNode="p"><FigureNode v-bind="p" /></template>
       <template #node-tourGuide="p"><TourGuideNode v-bind="p" /></template>
       <template #node-magicLatex="p"><MagicLatexNode v-bind="p" /></template>
 

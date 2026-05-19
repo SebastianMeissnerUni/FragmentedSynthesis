@@ -16,6 +16,7 @@ interface FigureNodeData {
   refLabel?: string
   width?: number
   height?: number
+  kind?: 'figure'
 }
 
 interface FigureNodeProps extends NodeProps<FigureNodeData> {}
@@ -79,9 +80,10 @@ function syncDataDownstream(updated: Partial<FigureNodeData> = {}) {
     label: props.data.label,
     citations: props.data.citations ?? [],
     image: props.data.image,
-    imageName: props.data.imageName,
+    imageName: props.data?.imageName,
     latexLabel: latexLabel.value,
     refLabel: refLabel.value,
+    kind: 'figure',
     ...updated
   })
 }
@@ -179,7 +181,7 @@ function onFileChange(event: Event) {
       delete imageCache.value[props.data.imageName]
     }
 
-    const cacheKey = `${refLabel.value}` // kanonischer Key
+    const cacheKey = props.data?.imageName || file.name
 
     imageCache.value[cacheKey] = {
       base64: reader.result as string,
@@ -269,8 +271,13 @@ watch(latexLabel, (currentLabel) => {
 })
 
 onMounted(() => {
+  // 1) Git-Bild → NICHT cachen
+  if (props.data?.image?.startsWith("http")) {
+    scanCitationsFromLatexLabel()
+    return
+  }
 
-  // Wenn Node beim Laden schon ein Bild hat, in den Cache eintragen
+  // 2) Upload-Bild → cachen
   if (props.data?.image && props.data.imageName && imageCache) {
     imageCache.value[props.data.imageName] = {
       base64: props.data.image,
@@ -278,35 +285,47 @@ onMounted(() => {
       latexLabel: latexLabel.value,
     }
 
-    // Optional: Node selbst speichert dann nur den Key
+    // Bild bleibt im Cache, aber Node soll nur den Key speichern
     syncDataDownstream({ image: undefined })
   }
 
-  // 2️⃣ Citation-Scan einmalig
   scanCitationsFromLatexLabel()
 
   // ResizeObserver wie gehabt
   if (!nodeRef.value) return
+
   resizeObs = new ResizeObserver(entries => {
     const box = entries[0].contentRect
     const width = Math.round(box.width)
     const height = Math.round(box.height)
+
     if (resizeRaf) cancelAnimationFrame(resizeRaf)
+
     resizeRaf = requestAnimationFrame(() => {
       if (
           props.data?.width === width &&
           props.data?.height === height
       ) return
+
       updateNodeData(props.id, { ...(props.data ?? {}), width, height })
     })
   })
+
   resizeObs.observe(nodeRef.value)
 })
+
+
 
 function deleteNode() {
   removeNodes([props.id])
 }
 
+const outputValue = computed(() => ({
+  type: "figure",
+  ref: props.data?.refLabel,
+  latexLabel: props.data?.latexLabel,
+  imageName: props.data?.imageName
+}))
 </script>
 
 
@@ -393,7 +412,12 @@ function deleteNode() {
       </div>
     </section>
 
-    <Handle id="output" type="source" :position="Position.Right" />
+    <Handle
+        id="output"
+        type="source"
+        :position="Position.Right"
+        :data="outputValue"
+    />
   </div>
 </template>
 
