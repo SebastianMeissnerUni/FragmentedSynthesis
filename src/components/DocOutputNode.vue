@@ -497,7 +497,7 @@ async function createLatexZipBlob(tex: string, bibEntries: BibEntry[], images: R
     else if (mime.includes("pdf")) ext = "pdf";
 
     const filename = entry.imageName ?? key
-    imgFolder.file(`${filename}.${ext}`, b64data, { base64: true })
+    imgFolder.file(`${filename}.${ext}`, matches[2], { base64: true })
   }
 
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
