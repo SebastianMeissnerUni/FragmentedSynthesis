@@ -286,8 +286,27 @@ watch(latexLabel, (currentLabel) => {
 })
 
 onMounted(() => {
-  // 1) Git-Bild NICHT cachen
+  // 1) GitHub-Bild laden und cachen
   if (typeof props.data?.image === "string" && props.data.image.startsWith("http")) {
+    fetch(props.data.image)
+        .then(res => res.blob())
+        .then(blob => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            imageCache.value[props.data.imageName] = {
+              base64: reader.result,
+              refLabel: refLabel.value,
+              latexLabel: latexLabel.value,
+            }
+
+            // Node aktualisieren
+            syncDataDownstream({
+              image: reader.result
+            })
+          }
+          reader.readAsDataURL(blob)
+        })
+
     scanCitationsFromLatexLabel()
     return
   }
@@ -393,6 +412,7 @@ const outputValue = computed(() => ({
       <textarea
           type="text"
           v-model="latexLabel"
+          @mousedown.stop
           @wheel.stop
           placeholder="Upload a figure, give it a caption and add a reference. Type here..."
           class="figure-node__label-input"

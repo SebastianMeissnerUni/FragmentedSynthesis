@@ -99,6 +99,7 @@ export function parseOverleafZip(
                 type: "figureNode",
                 position: { x: 0, y: 0 },
                 data: {
+                    kind: "figure",
                     imageName: filename,
                     latexLabel: filename,
                     refLabel: filename,
