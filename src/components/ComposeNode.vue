@@ -27,6 +27,17 @@ const nodeRef = ref<HTMLDivElement | null>(null)
 // Node-Titel
 const title = ref(props.data?.title ?? '')
 
+// Titel aus JSON übernehmen, falls vorhanden
+if (props.data?.json && !props.data?.title) {
+  try {
+    const parsed = JSON.parse(props.data.json)
+    if (parsed.title) {
+      title.value = parsed.title
+    }
+  } catch {}
+}
+
+
 // Alle eingehenden Edges
 const incomingEdges = computed(() => edges.value.filter(edge => edge.target === props.id))
 

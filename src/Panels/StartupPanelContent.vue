@@ -8,12 +8,16 @@ import {type Edge, Panel, useVueFlow} from '@vue-flow/core'
 import type {ZipFileEntry} from "@/App.vue";
 import {useLoadAndSave} from "@/api/LoadAndSave.ts";
 import { useRouter } from 'vue-router';
+import { parseOverleafZip } from "@/api/OverleafParser"
+
 
 
 
 // global variables
 const demoActive = inject<Ref<boolean>>('demoActive')!
 const bibliography = inject<Ref<BibEntry[]>>('bibliography')!
+const imageCache = inject<Ref<any>>('imageCache')!
+
 
 const router = useRouter();
 const emit = defineEmits<{
@@ -123,8 +127,6 @@ async function onLatexZipUpload(file: File) {
   reader.readAsArrayBuffer(file)
 }
 
-
-
 function importLatexProject() {
   if (!selectedMainTex.value) return
 
@@ -134,7 +136,36 @@ function importLatexProject() {
 
   if (!mainFile || typeof mainFile.content !== 'string') return
 
-  const {nodes: parsedNodes, edges: parsedEdges} =
+  //
+  // 1) Overleaf-Struktur erkennen
+  //
+  const hasMainTex = uploadedFiles.value.some(f => f.path === "main.tex")
+  const hasImagesFolder = uploadedFiles.value.some(f => f.path.startsWith("images/"))
+
+  //
+  // 2) Wenn Overleaf-Struktur → Overleaf-Importer benutzen
+  //
+  if (hasMainTex && hasImagesFolder) {
+    console.log("Using Overleaf importer")
+
+    const { nodes: parsedNodes, edges: parsedEdges } =
+        parseOverleafZip(uploadedFiles.value, selectedMainTex.value, imageCache)
+
+    parsedNodes.forEach((node, i) => {
+      node.position = { x: 50, y: i * 50 }
+    })
+
+    setNodes(parsedNodes)
+    setEdges(parsedEdges)
+
+    showLatexFilePicker.value = false
+    return
+  }
+
+  //
+  // 3) Fallback: eigener Parser
+  //
+  const { nodes: parsedNodes, edges: parsedEdges } =
       parseLatexToNodesAndEdges(
           uploadedFiles.value,
           selectedMainTex.value,
@@ -147,10 +178,12 @@ function importLatexProject() {
       )
 
   parsedNodes.forEach((node, i) => {
-    node.position = {x: 50, y: i * 50}
+    node.position = { x: 50, y: i * 50 }
   })
 
   setNodes(parsedNodes)
+  setEdges(parsedEdges)
+
   console.log('[IMPORT] nodes after parse:', parsedNodes.map(n => ({
     id: n.id,
     type: n.type,
@@ -159,9 +192,9 @@ function importLatexProject() {
     hasImage: !!(n as any).data?.image,
   })))
 
-
   showLatexFilePicker.value = false
 }
+
 
 
 function handleStartDemo() {
@@ -183,9 +216,6 @@ function handleUploadFile() {
   showIntro.value = false
 }
 
-
-
-
 </script>
 
 <template>
@@ -197,26 +227,38 @@ function handleUploadFile() {
       <h1>👋 Hey there! Looks like you're new here.</h1>
       <p>What would you like to do?</p>
       <div class="demo-buttons">
-        <label class="skip-button upload-label" @click="handleSkipDemo">Start Empty Project</label>
-        <label class="skip-button upload-label" @click="handleUploadFile">
-          Upload Project from File
-          <input accept=".json" type="file" @change="restoreFromFile"/>
+
+        <!-- Empty Project -->
+        <label class="skip-button upload-label" @click="handleSkipDemo">
+          Start Empty Project
         </label>
 
+        <!-- JSON Upload -->
+        <label class="skip-button upload-label" @click="handleUploadFile">
+          Upload Project (.json)
+          <input
+              accept=".json"
+              type="file"
+              @change="restoreFromFile"
+          />
+        </label>
 
+        <!-- LaTeX ZIP Upload -->
         <label class="skip-button upload-label">
           Upload LaTeX-File (.zip)
           <input
               ref="fileInputRef"
               accept=".zip"
               type="file"
-              @change="(e) => {
-                const file = (e.target as HTMLInputElement).files?.[0];
-                if (file) onLatexZipUpload(file);
-              }"
+              @change="e => onLatexZipUpload(e.target.files[0])"
           />
         </label>
-        <label class="start-button upload-label" @click="handleStartDemo">🎬 Start Tour</label>
+
+        <!-- Demo -->
+        <label class="start-button upload-label" @click="handleStartDemo">
+          🎬 Start Tour
+        </label>
+
       </div>
     </div>
   </div>
@@ -241,8 +283,8 @@ function handleUploadFile() {
           </label>
 
           <span v-else class="latex-file muted">
-          {{ file.type === 'image' ? '🖼' : '📦' }} {{ file.path }}
-        </span>
+            {{ file.type === 'image' ? '🖼' : '📦' }} {{ file.path }}
+          </span>
         </li>
       </ul>
 
@@ -256,7 +298,6 @@ function handleUploadFile() {
     </div>
   </div>
 
-
   <!-- BOTTOM DEMO CONTROLS -->
 
   <div v-if="demoActive" class="demo-controls">
@@ -265,6 +306,8 @@ function handleUploadFile() {
   </div>
 
 </template>
+
+
 
 <style scoped>
 

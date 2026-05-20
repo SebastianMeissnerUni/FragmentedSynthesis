@@ -496,7 +496,8 @@ async function createLatexZipBlob(tex: string, bibEntries: BibEntry[], images: R
     else if (mime.includes("svg")) ext = "svg";
     else if (mime.includes("pdf")) ext = "pdf";
 
-    imgFolder.file(`${key}.${ext}`, b64, { base64: true });
+    const filename = entry.imageName ?? key
+    imgFolder.file(`${filename}.${ext}`, b64data, { base64: true })
   }
 
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
@@ -560,7 +561,7 @@ watch(
         return !validHandles.has(handleId)
       })
 
-      if (stale.length) {
+      if (stale.length && rows.length < incomingEdges.value.length) {
         removeEdges(stale)
       }
     },
@@ -683,7 +684,6 @@ function deleteNode() {
       </button>
 
     </section>
-    <Handle id="out" type="source" :position="Position.Right" />
   </div>
 </template>
 

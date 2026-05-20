@@ -463,16 +463,7 @@ watch(nodes, (newNodes) => {
       .filter(n => n.type === 'figureNode')  // nur Figure Nodes
       .map(n => n.data?.refLabel)
       .filter(Boolean) as string[]
-  )
-
-  for (const key in imageCache.value) {
-    const cached = imageCache.value[key]
-    if (!usedRefLabels.has(cached.refLabel)) {
-      delete imageCache.value[key]
-      console.log(`Removed unused image from cache: ${key}`)
-    }
-  }
-}, { deep: true })
+  )})
 
 watch(designMode, (mode) => {
   if (mode === 'disco') {
