@@ -183,6 +183,52 @@ window.addEventListener("editor-open-file", async (e: any) => {
   }
 })
 
+console.log("[AppEditor] setting up upload listeners")
+
+// JSON IMPORT
+window.addEventListener("editor-load-json", (e: any) => {
+  console.log("[AppEditor] editor-load-json received")
+
+  try {
+    const json = JSON.parse(e.detail)
+    if (!json.nodes || !json.edges) {
+      console.warn("[AppEditor] invalid JSON format")
+      return
+    }
+
+    nodes.value = json.nodes
+    edges.value = json.edges
+    doc.value = json.doc ?? []
+
+    console.log("[AppEditor] JSON loaded:", nodes.value.length, "nodes")
+  } catch (err) {
+    console.error("[AppEditor] JSON parse error", err)
+  }
+})
+
+// ZIP IMPORT
+window.addEventListener("editor-load-zip", async (e: any) => {
+  console.log("[AppEditor] editor-load-zip received:", e.detail)
+  const file = e.detail as File
+  console.log("[AppEditor] ZIP file received:", file.name)
+})
+
+// START EMPTY PROJECT
+window.addEventListener("editor-start-empty", () => {
+  console.log("[AppEditor] editor-start-empty received")
+
+  nodes.value = []
+  edges.value = []
+  doc.value = []
+
+  console.log("[AppEditor] Editor cleared")
+})
+
+// START DEMO
+window.addEventListener("editor-start-demo", () => {
+  console.log("[AppEditor] editor-start-demo received")
+  demoActive.value = true
+})
 
 
 const snapshots = ref<Snapshot[]>([])
