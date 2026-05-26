@@ -9,6 +9,10 @@ import StartupPanelContent from "@/Panels/StartupPanelContent.vue"
 import SaveRestoreControls from '../Controls.vue'
 import { findNodeTemplate } from '../nodes/templates'
 import type { DocElement, ParagraphElement, FigureElement } from "@/docstructure"
+import JSZip from "jszip"
+import { parseLatexToNodesAndEdges } from "@/api/NewLatexParser"
+import { parseOverleafZip } from "@/api/OverleafParser"
+
 
 //Import every node-component:
 import TextAreaNode from './TextAreaNode.vue'
@@ -72,6 +76,9 @@ export interface EdgeMouseEvent {
 //Globally provided data:
 const doc = ref<DocElement[]>([])
 provide("doc", doc)
+
+const imageCache = ref<ImageCache>({})
+provide('imageCache', imageCache)
 
 const addParagraphNode = (text: string, filePath: string) => {
   const fileName = filePath.split("/").pop() ?? "Untitled"
@@ -206,12 +213,70 @@ window.addEventListener("editor-load-json", (e: any) => {
   }
 })
 
-// ZIP IMPORT
 window.addEventListener("editor-load-zip", async (e: any) => {
   console.log("[AppEditor] editor-load-zip received:", e.detail)
   const file = e.detail as File
-  console.log("[AppEditor] ZIP file received:", file.name)
+
+  const arrayBuffer = await file.arrayBuffer()
+  const zip = await JSZip.loadAsync(arrayBuffer)
+
+  const files: any[] = []
+
+  for (const entry of Object.values(zip.files)) {
+    if (entry.dir) continue
+
+    if (entry.name.endsWith(".tex")) {
+      files.push({
+        path: entry.name,
+        type: "tex",
+        content: await entry.async("string")
+      })
+    } else if (entry.name.endsWith(".bib")) {
+      files.push({
+        path: entry.name,
+        type: "bib",
+        content: await entry.async("string")
+      })
+    } else if (/\.(png|jpe?g|gif|svg|pdf)$/i.test(entry.name)) {
+      const base64 = await entry.async("base64")
+      const ext = entry.name.split(".").pop() || "png"
+      files.push({
+        path: entry.name,
+        type: "image",
+        content: `data:image/${ext};base64,${base64}`
+      })
+    } else {
+      files.push({
+        path: entry.name,
+        type: "other",
+        content: await entry.async("string")
+      })
+    }
+  }
+
+  const mainTex = files.find(f => f.path.endsWith("main.tex"))?.path
+  if (!mainTex) {
+    console.warn("[AppEditor] No main.tex found in ZIP")
+    return
+  }
+
+  let parsed
+
+  try {
+    parsed = parseOverleafZip(files, mainTex, imageCache)
+  } catch (err) {
+    console.error("[AppEditor] ZIP parsing failed:", err)
+    return
+  }
+
+  nodes.value = parsed.nodes
+  edges.value = parsed.edges
+  doc.value = parsed.doc ?? []
+
+  console.log("[AppEditor] ZIP import complete:", nodes.value.length, "nodes")
 })
+
+
 
 // START EMPTY PROJECT
 window.addEventListener("editor-start-empty", () => {
@@ -227,8 +292,16 @@ window.addEventListener("editor-start-empty", () => {
 // START DEMO
 window.addEventListener("editor-start-demo", () => {
   console.log("[AppEditor] editor-start-demo received")
+
   demoActive.value = true
+
+  if (typeof startDemo === "function") {
+    startDemo()
+  } else {
+    console.warn("[AppEditor] startDemo() not found")
+  }
 })
+
 
 
 const snapshots = ref<Snapshot[]>([])
@@ -253,9 +326,6 @@ provide('TLDR', TLDR)
 
 const demoActive = ref(false)
 provide('demoActive', demoActive)
-
-const imageCache = ref<ImageCache>({})
-provide('imageCache', imageCache)
 
 const templates = ref([])
 
