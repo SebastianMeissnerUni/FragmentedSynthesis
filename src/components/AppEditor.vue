@@ -12,6 +12,8 @@ import type { DocElement, ParagraphElement, FigureElement } from "@/docstructure
 import JSZip from "jszip"
 import { parseLatexToNodesAndEdges } from "@/api/NewLatexParser"
 import { parseOverleafZip } from "@/api/OverleafParser"
+import { useDemo } from "@/api/demo"
+
 
 
 //Import every node-component:
@@ -74,6 +76,7 @@ export interface EdgeMouseEvent {
 }
 
 //Globally provided data:
+
 const doc = ref<DocElement[]>([])
 provide("doc", doc)
 
@@ -261,7 +264,6 @@ window.addEventListener("editor-load-zip", async (e: any) => {
   }
 
   let parsed
-
   try {
     parsed = parseOverleafZip(files, mainTex, imageCache)
   } catch (err) {
@@ -273,6 +275,8 @@ window.addEventListener("editor-load-zip", async (e: any) => {
   edges.value = parsed.edges
   doc.value = parsed.doc ?? []
 
+
+  console.log("[AppEditor] VueFlow nodes after assignment:", nodes.value)
   console.log("[AppEditor] ZIP import complete:", nodes.value.length, "nodes")
 })
 
@@ -342,8 +346,30 @@ provide('designMode', designMode)
 let discoInterval: number | undefined
 
 
-const {addNodes, screenToFlowCoordinate} = useVueFlow()
-const { updateEdge, addEdges } = useVueFlow()
+const {
+  addNodes,
+  setNodes,
+  setEdges,
+  updateEdge,
+  addEdges,
+  screenToFlowCoordinate,
+  dimensions
+} = useVueFlow()
+
+
+const {
+  startDemo,
+  nextStep,
+  skipDemo
+} = useDemo({
+  demoActive,
+  nodes,
+  setNodes,
+  setEdges,
+  addNodes,
+  screenToFlowCoordinate,
+  dimensions
+})
 
 
 const edgeMenu = ref<{

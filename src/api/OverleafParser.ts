@@ -21,6 +21,7 @@ export function parseOverleafZip(
     }
 
     const tex = mainFile.content
+    console.log("[ZIP] RAW TEX LENGTH:", tex.length)
 
     //
     // 2. Sections erkennen
@@ -108,42 +109,69 @@ export function parseOverleafZip(
                         ]?.base64
                 }
             })
-
-
         }
 
         //
-        // 4. Paragraphs erkennen (NACH Figures!)
+        // 4A. Paragraphs erkennen: \paragraph{}TEXT
         //
-    const paragraphRegex =
-        /(?:^|\n)\s*([^\\\n][^\n]*)(?=\n|$)/g
+        const latexParagraphRegex = /\\paragraph\{[^}]*\}\s*([^\n]+)/g
+        let pmatch
 
-    while ((match = paragraphRegex.exec(tex))) {
-        const text = match[1].trim()
-        if (!text) continue
+        while ((pmatch = latexParagraphRegex.exec(tex))) {
+            const text = pmatch[1].trim()
+            if (!text) continue
 
-        if (text.startsWith("\\")) continue
-        if (text.includes("\\includegraphics")) continue
-        if (text.includes("\\centering")) continue
-        if (text.includes("\\caption")) continue
-        if (text.includes("\\section")) continue
-        if (text.includes("\\subsection")) continue
-        if (text.includes("\\subsubsection")) continue
+            const id = uuid()
 
-        const id = uuid()
+            console.log("[ZIP] Found LaTeX paragraph:", text)
 
-        nodes.push({
-            id,
-            type: "textArea",
-            position: { x: 0, y: 0 },
-            data: {
-                value: text
-            }
-        })
-    }
+            nodes.push({
+                id,
+                type: "textView",
+                position: { x: 0, y: 0 },
+                data: {
+                    label: "Paragraph",
+                    text
+                },
+                dragHandle: ".doc-node__header"
+            })
+        }
 
+        //
+        // 4B. Normale Absätze erkennen (falls vorhanden)
+        //
+        const rawParagraphs = tex
+            .split(/\n\s*\n/)
+            .map(p => p.trim())
+            .filter(p =>
+                p.length > 0 &&
+                !p.startsWith("\\") &&
+                !p.includes("\\includegraphics") &&
+                !p.includes("\\centering") &&
+                !p.includes("\\caption") &&
+                !p.includes("\\section") &&
+                !p.includes("\\subsection") &&
+                !p.includes("\\subsubsection")
+            )
 
-    //
+        console.log("[ZIP] Normal paragraphs found:", rawParagraphs.length)
+
+        for (const p of rawParagraphs) {
+            const id = uuid()
+
+            nodes.push({
+                id,
+                type: "textView",
+                position: { x: 0, y: 0 },
+                data: {
+                    label: "Paragraph",
+                    text: p
+                },
+                dragHandle: ".doc-node__header"
+            })
+        }
+
+        //
         // 5. Output‑Node erzeugen
         //
         nodes.push({
@@ -170,50 +198,37 @@ export function parseOverleafZip(
         //
         // 7. Bilder in den Cache laden
         //
-    files
-        .filter(f => f.path.startsWith("images/"))
-        .forEach(img => {
-            const filename = img.path.replace("images/", "")
-            const cleanName = filename.replace(/\.(png|jpg|jpeg|svg|pdf)$/i, "")
-            const ext = filename.split('.').pop()
+        files
+            .filter(f => f.path.startsWith("images/"))
+            .forEach(img => {
+                const filename = img.path.replace("images/", "")
+                const cleanName = filename.replace(/\.(png|jpg|jpeg|svg|pdf)$/i, "")
+                const ext = filename.split('.').pop()
 
-            let base64: string
+                let base64: string
 
-            // Fall 1: content ist bereits ein data:image/...;base64 String
-            if (img.content.startsWith("data:image")) {
-                base64 = img.content
-            }
+                if (img.content.startsWith("data:image")) {
+                    base64 = img.content
+                } else if (/^[A-Za-z0-9+/=]+$/.test(img.content)) {
+                    base64 = `data:image/${ext};base64,${img.content}`
+                } else if (img.content instanceof Uint8Array) {
+                    base64 = `data:image/${ext};base64,${btoa(
+                        String.fromCharCode(...img.content)
+                    )}`
+                } else {
+                    base64 = `data:image/${ext};base64,${btoa(img.content)}`
+                }
 
-            // Fall 2: content ist ein reiner Base64-String
-            else if (/^[A-Za-z0-9+/=]+$/.test(img.content)) {
-                base64 = `data:image/${ext};base64,${img.content}`
-            }
+                imageCache.value[cleanName] = {
+                    base64,
+                    latexLabel: filename,
+                    refLabel: filename
+                }
+            })
 
-            // Fall 3: content ist ein Uint8Array
-            else if (img.content instanceof Uint8Array) {
-                base64 = `data:image/${ext};base64,${btoa(
-                    String.fromCharCode(...img.content)
-                )}`
-            }
+        console.log("[ZIP] FINAL NODE COUNT:", nodes.length)
+        console.log("[ZIP] FINAL EDGE COUNT:", edges.length)
+        console.log("[ZIP] FINAL NODES:", nodes)
 
-            // Fall 4: content ist ein Binärstring
-            else {
-                base64 = `data:image/${ext};base64,${btoa(img.content)}`
-            }
-
-            imageCache.value[cleanName] = {
-                base64,
-                latexLabel: filename,
-                refLabel: filename
-            }
-        })
-
-
-
-    console.log("CACHE AFTER IMPORT:", JSON.stringify(imageCache.value, null, 2))
-
-
-
-
-    return { nodes, edges }
+        return { nodes, edges }
     }
