@@ -108,24 +108,72 @@ router.get("/file", authenticateToken, (req, res) => {
             if (!row) return res.status(400).json({ error: "No token" });
 
             try {
-                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-                const response = await axios.get(url, {
+                //
+                // 1) Datei-Metadaten holen (liefert SHA)
+                //
+                const metaUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+                const metaRes = await axios.get(metaUrl, {
                     headers: { Authorization: `Bearer ${row.github_access_token}` }
                 });
 
-                const content = Buffer.from(response.data.content, "base64").toString("utf8");
+                const isBinary = /\.(png|jpe?g|gif|svg|pdf)$/i.test(path);
 
-                res.json({
-                    name: response.data.name,
-                    path: response.data.path,
-                    content
+                //
+                // 2) PUBLIC REPO → /contents API ist OK
+                //
+                if (!metaRes.data._links.git.includes("/git/blobs/")) {
+                    // GitHub liefert content direkt
+                    if (isBinary) {
+                        return res.json({
+                            name: metaRes.data.name,
+                            path: metaRes.data.path,
+                            content: metaRes.data.content
+                        });
+                    }
+
+                    const text = Buffer.from(metaRes.data.content, "base64").toString("utf8");
+
+                    return res.json({
+                        name: metaRes.data.name,
+                        path: metaRes.data.path,
+                        content: text
+                    });
+                }
+
+                //
+                // 3) PRIVATE REPO → IMMER /git/blobs/:sha benutzen
+                //
+                const blobUrl = metaRes.data._links.git;
+                const blobRes = await axios.get(blobUrl, {
+                    headers: { Authorization: `Bearer ${row.github_access_token}` }
                 });
+
+                if (isBinary) {
+                    return res.json({
+                        name: metaRes.data.name,
+                        path: metaRes.data.path,
+                        content: blobRes.data.content
+                    });
+                }
+
+                const text = Buffer.from(blobRes.data.content, "base64").toString("utf8");
+
+                return res.json({
+                    name: metaRes.data.name,
+                    path: metaRes.data.path,
+                    content: text
+                });
+
             } catch (e) {
+                console.log(e.response?.data);
                 res.status(500).json({ error: "GitHub API error" });
             }
         }
     );
 });
+
+
+
 
 // Datei committen
 router.post("/save", authenticateToken, (req, res) => {

@@ -167,7 +167,7 @@ console.log('[AppEditor] setting up editor-open-file listener')
 window.addEventListener("editor-open-file", async (e: any) => {
   console.log('[AppEditor] editor-open-file received:', e.detail)
 
-  const file = e.detail as { type: "txt" | "png", path: string, repo: any }
+  const file = e.detail
   const token = localStorage.getItem("token")
 
   if (!token) {
@@ -175,23 +175,42 @@ window.addEventListener("editor-open-file", async (e: any) => {
     return
   }
 
+  // -------------------------
+  // TEXTDATEIEN
+  // -------------------------
   if (file.type === "txt") {
-    console.log('[AppEditor] loading TEX/TXT file:', file.path)
     const res = await fetch(
         `http://localhost:3000/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
         { headers: { Authorization: `Bearer ${token}` } }
     )
     const data = await res.json()
     addParagraphNode(data.content, file.path)
+    return
   }
 
-  if (file.type === "png") {
-    console.log('[AppEditor] loading PNG file:', file.path)
-    const imageUrl =
-        `https://raw.githubusercontent.com/${file.repo.owner.login}/${file.repo.name}/main/${file.path}`
-    addFigureNode(imageUrl, file.path)
+  // -------------------------
+  // ÖFFENTLICHE BILDER
+  // -------------------------
+  if (file.type === "public-image") {
+    addFigureNode(file.url, file.path)
+    return
+  }
+
+  // -------------------------
+  // PRIVATE BILDER
+  // -------------------------
+  if (file.type === "private-image") {
+    const res = await fetch(
+        `http://localhost:3000/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+    )
+    const data = await res.json()
+    const base64Url = `data:image/png;base64,${data.content}`
+    addFigureNode(base64Url, file.path)
+    return
   }
 })
+
 
 console.log("[AppEditor] setting up upload listeners")
 

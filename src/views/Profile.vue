@@ -23,6 +23,7 @@ const emit = defineEmits(['close'])
 
 
 
+
 const toggleFolder = (path: string) => {
   folderOpen.value[path] = !folderOpen.value[path]
 }
@@ -65,8 +66,26 @@ const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
       openInEditor({ type: "txt", path: filePath, repo })
     }
     if (lower.endsWith(".png")) {
-      console.log('[Profile] calling openInEditor for PNG')
-      openInEditor({ type: "png", path: filePath, repo })
+      const isPublic = !repo.private
+
+      if (isPublic) {
+        // Öffentliche Repos
+        const url = `https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/main/${filePath}`
+        openInEditor({
+          type: "public-image",
+          url,
+          path: filePath,
+          repo
+        })
+      } else {
+        // Private Repos
+        openInEditor({
+          type: "private-image",
+          path: filePath,
+          repo
+        })
+      }
+      return
     }
   }
 }
