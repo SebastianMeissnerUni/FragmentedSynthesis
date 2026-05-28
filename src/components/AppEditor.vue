@@ -325,6 +325,32 @@ window.addEventListener("editor-start-demo", () => {
   }
 })
 
+window.addEventListener("editor-git-action", async (e: any) => {
+  const action = e.detail
+
+  switch (action) {
+    case "save-text":
+      await saveCurrentText()
+      break
+
+    case "upload-image":
+      await uploadImageFile()
+      break
+
+    case "update-image":
+      await updateCurrentImage()
+      break
+
+    case "create-file":
+      await createNewFile()
+      break
+
+    case "delete-file":
+      await deleteCurrentFile()
+      break
+  }
+})
+
 
 
 const snapshots = ref<Snapshot[]>([])

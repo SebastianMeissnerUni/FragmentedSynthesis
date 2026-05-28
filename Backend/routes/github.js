@@ -172,14 +172,11 @@ router.get("/file", authenticateToken, (req, res) => {
     );
 });
 
-
-
-
 // Datei committen
-router.post("/save", authenticateToken, (req, res) => {
+router.post("/save-text", authenticateToken, (req, res) => {
     const { repo, owner, path, content, message } = req.body;
 
-    if (!repo || !owner || !path || !content) {
+    if (!repo || !owner || !path || content === undefined) {
         return res.status(400).json({ error: "Missing fields" });
     }
 
@@ -190,19 +187,23 @@ router.post("/save", authenticateToken, (req, res) => {
             if (!row) return res.status(400).json({ error: "No token" });
 
             try {
-                // 1) SHA der Datei holen
-                const fileInfo = await axios.get(
-                    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
-                    { headers: { Authorization: `Bearer ${row.github_access_token}` } }
-                );
+                // SHA holen
+                let sha = null;
+                try {
+                    const fileInfo = await axios.get(
+                        `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+                        { headers: { Authorization: `Bearer ${row.github_access_token}` } }
+                    );
+                    sha = fileInfo.data.sha;
+                } catch (_) {
+                    sha = null; // Datei existiert nicht → wird neu erstellt
+                }
 
-                const sha = fileInfo.data.sha;
-
-                // 2) Datei committen
+                // Commit
                 const response = await axios.put(
                     `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
                     {
-                        message: message || "Update from Fragmented Synthesis",
+                        message: message || "Update text file",
                         content: Buffer.from(content).toString("base64"),
                         sha
                     },
@@ -211,10 +212,169 @@ router.post("/save", authenticateToken, (req, res) => {
 
                 res.json({ success: true, commit: response.data.commit });
             } catch (e) {
+                console.log(e.response?.data);
                 res.status(500).json({ error: "GitHub commit failed" });
             }
         }
     );
 });
 
+router.post("/upload-image", authenticateToken, (req, res) => {
+    const { repo, owner, path, base64, message } = req.body;
+
+    if (!repo || !owner || !path || !base64) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (!row) return res.status(400).json({ error: "No token" });
+
+            try {
+                // Datei existiert? SHA holen
+                let sha = null;
+                try {
+                    const fileInfo = await axios.get(
+                        `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+                        { headers: { Authorization: `Bearer ${row.github_access_token}` } }
+                    );
+                    sha = fileInfo.data.sha;
+                } catch (_) {
+                    sha = null;
+                }
+
+                const response = await axios.put(
+                    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+                    {
+                        message: message || "Upload image",
+                        content: base64, // bereits Base64
+                        sha
+                    },
+                    { headers: { Authorization: `Bearer ${row.github_access_token}` } }
+                );
+
+                res.json({ success: true, commit: response.data.commit });
+            } catch (e) {
+                console.log(e.response?.data);
+                res.status(500).json({ error: "GitHub image upload failed" });
+            }
+        }
+    );
+});
+
+
+router.post("/update-image", authenticateToken, (req, res) => {
+    const { repo, owner, path, base64, message } = req.body;
+
+    if (!repo || !owner || !path || !base64) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (!row) return res.status(400).json({ error: "No token" });
+
+            try {
+                const fileInfo = await axios.get(
+                    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+                    { headers: { Authorization: `Bearer ${row.github_access_token}` } }
+                );
+
+                const sha = fileInfo.data.sha;
+
+                const response = await axios.put(
+                    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+                    {
+                        message: message || "Update image",
+                        content: base64,
+                        sha
+                    },
+                    { headers: { Authorization: `Bearer ${row.github_access_token}` } }
+                );
+
+                res.json({ success: true, commit: response.data.commit });
+            } catch (e) {
+                console.log(e.response?.data);
+                res.status(500).json({ error: "GitHub image update failed" });
+            }
+        }
+    );
+});
+
+router.post("/create-file", authenticateToken, (req, res) => {
+    const { repo, owner, path, base64, message } = req.body;
+
+    if (!repo || !owner || !path || !base64) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (!row) return res.status(400).json({ error: "No token" });
+
+            try {
+                const response = await axios.put(
+                    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+                    {
+                        message: message || "Create new file",
+                        content: base64
+                    },
+                    { headers: { Authorization: `Bearer ${row.github_access_token}` } }
+                );
+
+                res.json({ success: true, commit: response.data.commit });
+            } catch (e) {
+                console.log(e.response?.data);
+                res.status(500).json({ error: "GitHub create file failed" });
+            }
+        }
+    );
+});
+
+router.post("/delete-file", authenticateToken, (req, res) => {
+    const { repo, owner, path, message } = req.body;
+
+    if (!repo || !owner || !path) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (!row) return res.status(400).json({ error: "No token" });
+
+            try {
+                const fileInfo = await axios.get(
+                    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+                    { headers: { Authorization: `Bearer ${row.github_access_token}` } }
+                );
+
+                const sha = fileInfo.data.sha;
+
+                const response = await axios.delete(
+                    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+                    {
+                        headers: { Authorization: `Bearer ${row.github_access_token}` },
+                        data: {
+                            message: message || "Delete file",
+                            sha
+                        }
+                    }
+                );
+
+                res.json({ success: true });
+            } catch (e) {
+                console.log(e.response?.data);
+                res.status(500).json({ error: "GitHub delete failed" });
+            }
+        }
+    );
+});
 module.exports = router;

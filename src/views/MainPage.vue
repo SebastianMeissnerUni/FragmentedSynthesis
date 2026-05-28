@@ -4,6 +4,7 @@ import AppEditor from "@/components/AppEditor.vue"
 import ProfilePage from "@/views/Profile.vue"
 import ProfileButton from "@/components/ProfileButton.vue"
 import UploadButton from "@/components/UploadButton.vue"
+import GitButton from "@/components/GitButton.vue"
 
 
 import '@vue-flow/core/dist/style.css'
@@ -65,6 +66,7 @@ function startDemo() {
           @start-empty="startEmpty"
           @start-demo="startDemo"
       />
+      <GitButton />
     </header>
 
 
