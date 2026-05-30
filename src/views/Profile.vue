@@ -50,6 +50,100 @@ async function loadRepoFilesRecursively(repo: GitHubRepo, path = '') {
   )
 }
 
+async function deleteFile(repo, path) {
+  const ok = confirm(`Soll "${path}" wirklich gelöscht werden?`)
+  if (!ok) return
+
+  await fetch("http://localhost:3000/github/delete-file", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify({
+      repo: repo.name,
+      owner: repo.owner.login,
+      path,
+      message: `Delete ${path}`
+    })
+  })
+
+  await loadRepoFiles(repo)
+}
+
+
+
+async function createFileInFolder(repo, folderPath) {
+  const name = prompt("Dateiname (z.B. notes.txt):")
+  if (!name) return
+
+  const base64 = btoa("Neue Datei")
+
+  await fetch("http://localhost:3000/github/create-file", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify({
+      repo: repo.name,
+      owner: repo.owner.login,
+      path: `${folderPath}/${name}`,
+      base64,
+      message: `Create ${name}`
+    })
+  })
+
+  await loadRepoFiles(repo)
+}
+
+
+
+async function uploadToFolder(repo, folderPath) {
+  const input = document.createElement("input")
+  input.type = "file"
+
+  input.onchange = async () => {
+    const file = input.files[0]
+    if (!file) return
+
+    const base64 = await fileToBase64(file)
+
+    await fetch("http://localhost:3000/github/upload-image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + localStorage.getItem("token")
+      },
+      body: JSON.stringify({
+        repo: repo.name,
+        owner: repo.owner.login,
+        path: `${folderPath}/${file.name}`,
+        base64,
+        message: `Upload ${file.name}`
+      })
+    })
+
+    await loadRepoFiles(repo)
+  }
+
+  input.click()
+}
+
+async function loadRepoFiles(repo: GitHubRepo) {
+  repoFiles.value[repo.id] = await loadRepoFilesRecursively(repo)
+}
+
+
+function fileToBase64(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result.split(",")[1])
+    reader.readAsDataURL(file)
+  })
+}
+
+
 const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
   console.log('[Profile] openFile clicked:', { filePath, fileType })
 
@@ -267,21 +361,40 @@ const handlePasswordChange = async () => {
                     v-if="file.type === 'dir'"
                     class="folder"
                     @click="toggleFolder(file.path)"
-                    style="cursor: pointer;"
+                    style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
                 >
-                  <span>{{ folderOpen[file.path] ? '📂' : '📁' }}</span>
-                  {{ file.name }}
+  <span>
+    {{ folderOpen[file.path] ? '📂' : '📁' }} {{ file.name }}
+  </span>
+                  <span class="folder-actions">
+
+    <button @click.stop="createFileInFolder(repo, file.path)" title="Neue Datei">📄➕</button>
+
+    <button @click.stop="uploadToFolder(repo, file.path)" title="Datei hochladen">📤</button>
+
+    <button @click.stop="deleteFile(repo, file.path)" title="Ordner löschen">🗑️</button>
+  </span>
                 </div>
+
 
                 <!-- DATEI -->
                 <div
                     v-else
                     class="file"
                     @click="openFile(repo, file.path, 'file')"
-                    style="cursor: pointer;"
+                    style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
                 >
-                  📄 {{ file.name }}
+                  <span>📄 {{ file.name }}</span>
+
+                  <button
+                      class="delete-btn"
+                      @click.stop="deleteFile(repo, file.path)"
+                      title="Datei löschen"
+                  >
+                    🗑️
+                  </button>
                 </div>
+
 
                 <!-- KINDER DES ORDNER -->
                 <ul
@@ -296,21 +409,32 @@ const handlePasswordChange = async () => {
                         v-if="child.type === 'dir'"
                         class="folder"
                         @click="toggleFolder(child.path)"
-                        style="cursor: pointer;"
+                        style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
                     >
-                      <span>{{ folderOpen[child.path] ? '📂' : '📁' }}</span>
-                      {{ child.name }}
+  <span>
+    {{ folderOpen[child.path] ? '📂' : '📁' }} {{ child.name }}
+  </span>
+
+                      <span class="folder-actions">
+    <button @click.stop="createFileInFolder(repo, child.path)">📄➕</button>
+    <button @click.stop="uploadToFolder(repo, child.path)">📤</button>
+    <button @click.stop="deleteFile(repo, child.path)">🗑️</button>
+  </span>
                     </div>
+
 
                     <!-- Datei -->
                     <div
                         v-else
                         class="file"
                         @click="openFile(repo, child.path, 'file')"
-                        style="cursor: pointer;"
+                        style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
                     >
-                      📄 {{ child.name }}
+                      <span>📄 {{ child.name }}</span>
+
+                      <button @click.stop="deleteFile(repo, child.path)">🗑️</button>
                     </div>
+
 
                     <!-- REKURSION: Unterordner -->
                     <ul
@@ -502,4 +626,20 @@ input {
 .arrow.open {
   transform: rotate(90deg);
 }
+
+.delete-btn,
+.folder-actions button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.7;
+  margin-left: 6px;
+}
+
+.delete-btn:hover,
+.folder-actions button:hover {
+  opacity: 1;
+}
+
+
 </style>
