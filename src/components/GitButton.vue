@@ -20,11 +20,7 @@ function emitGitAction(action: string) {
     </button>
 
     <div v-if="showMenu" class="git-menu">
-      <button @click="emitGitAction('save-text')">💾 Text speichern</button>
-      <button @click="emitGitAction('upload-image')">🖼️ Bild hochladen</button>
-      <button @click="emitGitAction('update-image')">🔄 Bild aktualisieren</button>
-      <button @click="emitGitAction('create-file')">📄 Neue Datei</button>
-      <button @click="emitGitAction('delete-file')">🗑️ Datei löschen</button>
+      <button @click="emitGitAction('save-to-git')">💾 Änderungen in Git speichern</button>
     </div>
   </div>
 </template>

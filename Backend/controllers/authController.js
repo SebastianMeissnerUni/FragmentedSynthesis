@@ -42,7 +42,7 @@ exports.register = async (req, res) => {
             const token = jwt.sign(
                 { id: this.lastID },
                 "SECRET123",
-                { expiresIn: "1h" }
+                { expiresIn: "6h" }
             );
 
             // Token zurückgeben
@@ -71,7 +71,7 @@ exports.login = (req, res) => {
             const match = await bcrypt.compare(password, user.password_hash);
             if (!match) return res.status(400).json({ error: "Wrong password" });
 
-            const token = jwt.sign({ id: user.id }, "SECRET123", { expiresIn: "1h" });
+            const token = jwt.sign({ id: user.id }, "SECRET123", { expiresIn: "6h" });
 
             res.json({ token });
         }
@@ -184,7 +184,7 @@ exports.githubLoginOrRegister = (githubUser, res, githubAccessToken) => {
                     [githubAccessToken, user.id]
                 );
 
-                const token = jwt.sign({ id: user.id }, "SECRET123", { expiresIn: "1h" });
+                const token = jwt.sign({ id: user.id }, "SECRET123", { expiresIn: "6h" });
                 return res.redirect(`http://localhost:5173/login-success?token=${token}`);
             }
 
@@ -195,7 +195,7 @@ exports.githubLoginOrRegister = (githubUser, res, githubAccessToken) => {
                 function (err) {
                     if (err) return res.status(500).json({ error: "DB error" });
 
-                    const token = jwt.sign({ id: this.lastID }, "SECRET123", { expiresIn: "1h" });
+                    const token = jwt.sign({ id: this.lastID }, "SECRET123", { expiresIn: "6h" });
 
                     return res.redirect(`http://localhost:5173/login-success?token=${token}`);
                 }
