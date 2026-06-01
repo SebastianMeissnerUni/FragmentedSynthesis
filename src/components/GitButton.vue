@@ -20,7 +20,8 @@ function emitGitAction(action: string) {
     </button>
 
     <div v-if="showMenu" class="git-menu">
-      <button @click="emitGitAction('save-to-git')">💾 Änderungen in Git speichern</button>
+      <button @click="emitGitAction('save-to-git')">💾 Änderungen in GIT speichern</button>
+      <button @click="emitGitAction('create-repo')">📦 Neues Repository erstellen</button>
     </div>
   </div>
 </template>

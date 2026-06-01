@@ -59,6 +59,7 @@ onBeforeUnmount(() => {
 .profile-wrapper {
   position: relative;
   display: inline-block;
+  z-index: 5000;
 }
 
 /* Button mit hellgrauem Kasten */
@@ -89,7 +90,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-width: 120px;
-  z-index: 3000;
+  z-index: 99999;
 }
 
 .dropdown button {

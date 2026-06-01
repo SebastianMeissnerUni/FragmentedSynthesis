@@ -65,7 +65,7 @@ function startDemo() {
 
 <template>
   <div class="upload-wrapper" ref="wrapper">
-    <button class="upload-btn" @click.stop="toggle">📁</button>
+    <button class="upload-btn" @click.stop="toggle">📤</button>
 
     <div v-if="open" class="dropdown">
       <button @click="startEmpty">Neues Projekt</button>
@@ -98,7 +98,7 @@ function startDemo() {
 <style scoped>
 .upload-wrapper {
   position: relative;
-  z-index: 999999;
+  z-index: 2000;
   pointer-events: auto;
 }
 
@@ -111,7 +111,7 @@ function startDemo() {
   cursor: pointer;
   font-size: 20px;
   position: relative;
-  z-index: 999999;
+  z-index: 9000;
 }
 
 .dropdown {
@@ -125,7 +125,7 @@ function startDemo() {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  z-index: 9999;
+  z-index: 2500;
 }
 
 .file-option {
