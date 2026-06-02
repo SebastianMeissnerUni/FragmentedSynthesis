@@ -290,7 +290,6 @@ function buildOutline(doc: DocElement, currentSectionLevel: number, acc: Outline
 
 }
 
-
 function downloadLatex() {
   if (!latexSource.value) return
   const blob = new Blob([latexSource.value], { type: 'text/x-tex' })

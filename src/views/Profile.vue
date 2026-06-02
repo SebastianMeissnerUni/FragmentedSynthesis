@@ -277,6 +277,25 @@ const handlePasswordChange = async () => {
     message.value = { text: "Verbindung zum Server fehlgeschlagen", type: "error" };
   }
 };
+function openRepoInEditor(repo: GitHubRepo) {
+  if (!openInEditor) {
+    console.warn("openInEditor is undefined")
+    return
+  }
+
+  openInEditor({
+    type: "open-repo",
+    repo: {
+      name: repo.name,
+      owner: repo.owner.login,
+      private: repo.private
+    }
+  })
+
+  // Profil schließen
+  emit("close")
+}
+
 </script>
 
 <template>
@@ -339,14 +358,26 @@ const handlePasswordChange = async () => {
         <li v-for="repo in githubRepos" :key="repo.id" class="repo-item">
 
           <!-- Kopfzeile -->
-          <div class="repo-header" @click="toggleRepo(repo)">
-            <div class="project-info">
-              <strong>{{ repo.name }}</strong>
-              <small>{{ repo.private ? "Privat" : "Öffentlich" }}</small>
+          <div class="repo-header">
+
+            <div class="repo-click-area" @click="toggleRepo(repo)">
+              <div class="project-info">
+                <strong>{{ repo.name }}</strong>
+                <small>{{ repo.private ? "Privat" : "Öffentlich" }}</small>
+              </div>
             </div>
+
+            <button
+                class="open-repo-btn"
+                @click.stop="openRepoInEditor(repo)"
+                title="Ganzes Projekt im Editor öffnen"
+            >
+              📂
+            </button>
 
             <span class="arrow" :class="{ open: repoOpen[repo.id] }">▸</span>
           </div>
+
 
           <!-- Akkordeon-Inhalt -->
           <div v-if="repoOpen[repo.id]" class="repo-content">
@@ -641,5 +672,23 @@ input {
   opacity: 1;
 }
 
+.open-repo-btn {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.open-repo-btn:hover {
+  background: #444;
+}
+
+.repo-click-area {
+  flex: 1;
+  cursor: pointer;
+}
 
 </style>

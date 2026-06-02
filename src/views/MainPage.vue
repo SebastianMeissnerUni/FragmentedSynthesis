@@ -18,10 +18,6 @@ if (!token && !guest) {
   window.location.href = "/login"
 }
 
-provide("openInEditor", (file) => {
-  console.log('[MainPage] openInEditor called with:', file)
-  window.dispatchEvent(new CustomEvent("editor-open-file", { detail: file }))
-})
 // Overlay‑State
 const showProfile = ref(false)
 
@@ -52,6 +48,13 @@ function startDemo() {
   window.dispatchEvent(new CustomEvent("editor-start-demo"))
 }
 
+const editor = ref(null)
+
+defineExpose({
+  editor
+})
+
+
 </script>
 
 
@@ -70,7 +73,8 @@ function startDemo() {
     </header>
 
 
-    <AppEditor />
+    <AppEditor ref="editor" />
+
 
     <ProfilePage v-if="showProfile" @close="showProfile = false" />
 

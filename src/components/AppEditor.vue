@@ -13,6 +13,7 @@ import JSZip from "jszip"
 import { parseLatexToNodesAndEdges } from "@/api/NewLatexParser"
 import { parseOverleafZip } from "@/api/OverleafParser"
 import { useDemo } from "@/api/demo"
+import { v4 as uuid } from "uuid"
 
 
 
@@ -28,6 +29,7 @@ import StickyNote from './StickyNote.vue'
 import FigureNode from './FigureNode.vue'
 import TourGuideNode from './TourGuideNode.vue'
 import MagicLatexNode from './MagicLatexNode.vue'
+
 
 //Interfaces for globally provided data:
 
@@ -76,6 +78,20 @@ export interface EdgeMouseEvent {
 }
 
 //Globally provided data:
+
+onMounted(() => {
+  window.addEventListener("editor-load-repo", (e) => {
+    loadEntireRepo(e.detail)
+  })
+})
+
+function hardResetEditor() {
+  setNodes([])
+  setEdges([])
+  doc.value = []
+}
+
+
 
 const doc = ref<DocElement[]>([])
 provide("doc", doc)
@@ -160,6 +176,141 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
   ])
 
   console.log("[AppEditor] FigureNode created:", id, fileName)
+}
+
+function connectToOutput(nodeId) {
+  setEdges((eds) => {
+    const index = eds.filter(e => e.target === "docOutput").length
+
+    return [
+      ...eds,
+      {
+        id: `e-${nodeId}-out`,
+        source: nodeId,
+        target: "docOutput",
+        targetHandle: `doc-${index}`
+      }
+    ]
+  })
+}
+
+async function loadEntireRepo(repo) {
+  console.log("[AppEditor] Lade komplettes Repo:", repo)
+
+  hardResetEditor()
+
+  const token = localStorage.getItem("token")
+  const res = await fetch(
+      `http://localhost:3000/github/repo-tree?owner=${repo.owner}&repo=${repo.name}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+  )
+
+  const files = await res.json()
+
+  const nodes = []
+  const edges = []
+
+  // ⭐ Output-Node zuerst
+  nodes.push({
+    id: "docOutput",
+    type: "docOutput",
+    position: { x: 400, y: 100 },
+    data: {
+      label: "Document Output",
+      json: "[]",
+      value: "",
+      bibliography: [],
+      width: 600,
+      height: 800
+    },
+    draggable: true,
+    dragHandle: ".doc-node__header",
+    class: "doc-output doc-node"
+  })
+
+
+  let index = 0
+
+  for (const file of files) {
+    const lower = file.path.toLowerCase()
+
+    if (lower.endsWith(".tex")) {
+      const id = uuid()
+      const text = atob(file.content)
+      const fileName = file.path.split("/").pop() ?? "Untitled"
+
+      // 1) Doc-Node erzeugen (für Output/LaTeX)
+      doc.value.push({
+        id,
+        kind: "paragraph",
+        title: fileName,
+        body: text,
+        children: [],
+        sourceNodeId: fileName
+      })
+
+      // 2) VueFlow-Node erzeugen (ECHTER ParagraphNode)
+      nodes.push({
+        id,
+        type: "textArea",   // ⭐ WICHTIG: das ist der echte Node-Typ
+        position: { x: 200, y: 200 },
+        data: {
+          label: fileName,
+          value: text,
+          citations: [],
+          figures: [],
+          status: "idle"
+        },
+        dragHandle: ".doc-node__header"
+      })
+
+      // 3) Edge erzeugen
+      edges.push({
+        id: `e-${id}-out`,
+        source: id,
+        target: "docOutput",
+        targetHandle: `doc-${index}`
+      })
+
+      index++
+    }
+
+
+    if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+      const id = uuid()
+      const filename = file.path.split("/").pop()
+
+      nodes.push({
+        id,
+        type: "figureNode",
+        position: { x: 0, y: index * 120 },
+        data: {
+          kind: "figure",
+          type: "figureNode",
+          imageName: filename,
+          latexLabel: filename,
+          refLabel: filename,
+          image: `data:image/png;base64,${file.content}`
+        }
+      })
+
+      edges.push({
+        id: `e-${id}-out`,
+        source: id,
+        target: "docOutput",
+        targetHandle: `doc-${index}`
+      })
+
+      index++
+    }
+
+  }
+
+  // ⭐ Jetzt ALLES auf einmal setzen
+  setNodes(nodes)
+  setEdges(edges)
+
+  console.log("[AppEditor] Repo vollständig geladen:", files.length)
 }
 
 console.log('[AppEditor] setting up editor-open-file listener')
@@ -665,6 +816,13 @@ onUnmounted(() => {
     clearInterval(discoInterval)
   }
 })
+
+
+defineExpose({
+  loadEntireRepo
+})
+
+
 </script>
 
 <template>

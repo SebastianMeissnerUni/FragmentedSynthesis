@@ -65,6 +65,76 @@ router.get("/repo-files", authenticateToken, (req, res) => {
 });
 
 
+// Komplettes Repo rekursiv laden
+router.get("/repo-tree", authenticateToken, async (req, res) => {
+    const { owner, repo } = req.query;
+
+    if (!owner || !repo) {
+        return res.status(400).json({ error: "Missing owner or repo" });
+    }
+
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (!row || !row.github_access_token) {
+                return res.status(400).json({ error: "No GitHub token stored" });
+            }
+
+            const token = row.github_access_token;
+
+            // Rekursive Funktion
+            async function loadPath(path = "") {
+                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+
+                let response;
+                try {
+                    response = await axios.get(url, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                } catch (e) {
+                    console.log("GitHub error:", e.response?.data);
+                    return [];
+                }
+
+                const items = response.data;
+                let result = [];
+
+                for (const item of items) {
+                    if (item.type === "dir") {
+                        const children = await loadPath(item.path);
+                        result = result.concat(children);
+                    } else {
+                        let contentBase64 = null;
+
+                        // PRIVATE REPO → /git/blobs/:sha
+                        if (item._links && item._links.git) {
+                            const blobRes = await axios.get(item._links.git, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            contentBase64 = blobRes.data.content;
+                        } else {
+                            // PUBLIC REPO → content direkt
+                            contentBase64 = item.content;
+                        }
+
+                        result.push({
+                            path: item.path,
+                            content: contentBase64
+                        });
+                    }
+                }
+
+                return result;
+            }
+
+            const tree = await loadPath("");
+            res.json(tree);
+        }
+    );
+});
+
+
 // Dateien eines Repos
 router.get("/files", authenticateToken, (req, res) => {
     const { repo, owner } = req.query;
