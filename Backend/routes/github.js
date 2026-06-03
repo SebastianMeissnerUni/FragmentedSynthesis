@@ -447,4 +447,156 @@ router.post("/delete-file", authenticateToken, (req, res) => {
         }
     );
 });
+
+// ⭐ GANZES REPO committen
+router.post("/commit", authenticateToken, (req, res) => {
+    const { owner, repo, branch, files } = req.body;
+
+    if (!owner || !repo || !branch || !files) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (!row || !row.github_access_token) {
+                return res.status(400).json({ error: "No GitHub token stored" });
+            }
+
+            const token = row.github_access_token;
+
+            try {
+                //
+                // 1) HEAD SHA holen
+                //
+                const refRes = await axios.get(
+                    `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${branch}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                const latestCommitSha = refRes.data.object.sha;
+
+                //
+                // 2) Commit holen → Tree SHA extrahieren
+                //
+                const commitRes = await axios.get(
+                    `https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                const baseTreeSha = commitRes.data.tree.sha;
+
+                //
+                // 3) Blobs für jede Datei erzeugen
+                //
+                const tree = [];
+
+                for (const file of files) {
+                    const blobRes = await axios.post(
+                        `https://api.github.com/repos/${owner}/${repo}/git/blobs`,
+                        {
+                            content: file.content,
+                            encoding: "base64"
+                        },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+
+                    tree.push({
+                        path: file.path,
+                        mode: "100644",
+                        type: "blob",
+                        sha: blobRes.data.sha
+                    });
+                }
+
+                //
+                // 4) Neuen Tree erzeugen
+                //
+                const treeRes = await axios.post(
+                    `https://api.github.com/repos/${owner}/${repo}/git/trees`,
+                    {
+                        base_tree: baseTreeSha,
+                        tree
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                //
+                // 5) Commit erzeugen
+                //
+                const commitRes2 = await axios.post(
+                    `https://api.github.com/repos/${owner}/${repo}/git/commits`,
+                    {
+                        message: "Update from Fragmented Synthesis Editor",
+                        tree: treeRes.data.sha,
+                        parents: [latestCommitSha]
+                    },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                //
+                // 6) Branch aktualisieren
+                //
+                await axios.patch(
+                    `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`,
+                    { sha: commitRes2.data.sha },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                res.json({ success: true });
+            } catch (e) {
+                console.log("GitHub commit error:", e.response?.data);
+                res.status(500).json({ error: "GitHub commit failed" });
+            }
+        }
+    );
+});
+
+// ⭐ Neues GitHub-Repository erstellen
+router.post("/create-repo", authenticateToken, (req, res) => {
+    const { name, description = "", isPrivate = false } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ error: "Missing repository name" });
+    }
+
+    db.get(
+        "SELECT github_access_token FROM users WHERE id = ?",
+        [req.user.id],
+        async (err, row) => {
+            if (!row || !row.github_access_token) {
+                return res.status(400).json({ error: "No GitHub token stored" });
+            }
+
+            const token = row.github_access_token;
+
+            try {
+                const response = await axios.post(
+                    "https://api.github.com/user/repos",
+                    {
+                        name,
+                        description,
+                        private: isPrivate
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            Accept: "application/vnd.github+json"
+                        }
+                    }
+                );
+
+                res.json({
+                    success: true,
+                    repo: response.data
+                });
+            } catch (e) {
+                console.log("GitHub create repo error:", e.response?.data);
+                res.status(500).json({ error: "GitHub create repo failed" });
+            }
+        }
+    );
+});
+
 module.exports = router;

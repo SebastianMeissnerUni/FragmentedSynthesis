@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject } from 'vue'
-import { ref, watch, provide, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, watch, provide, computed, nextTick, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { type Node, type Edge, type Connection, useVueFlow } from '@vue-flow/core'
 import { VueFlow, addEdge } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
@@ -78,6 +78,8 @@ export interface EdgeMouseEvent {
 }
 
 //Globally provided data:
+
+const currentRepo = ref(null)
 
 onMounted(() => {
   window.addEventListener("editor-load-repo", (e) => {
@@ -311,9 +313,116 @@ async function loadEntireRepo(repo) {
   setEdges(edges)
 
   console.log("[AppEditor] Repo vollständig geladen:", files.length)
+
+  currentRepo.value = {
+    owner: repo.owner,
+    name: repo.name,
+    branch: repo.default_branch ?? "main"
+  }
 }
 
 console.log('[AppEditor] setting up editor-open-file listener')
+
+function exportEditorToFiles() {
+  const files = []
+
+  // ParagraphNodes → .tex
+  for (const node of nodes.value) {
+    if (node.type === "textArea") {
+      files.push({
+        path: node.data.label,
+        content: btoa(node.data.value ?? "")
+      })
+    }
+  }
+
+  // FigureNodes → .png
+  for (const node of nodes.value) {
+    if (node.type === "figureNode") {
+      files.push({
+        path: node.data.imageName,
+        content: node.data.image.replace("data:image/png;base64,", "")
+      })
+    }
+  }
+
+  return files
+}
+
+async function saveCurrentRepoToGit() {
+  if (!currentRepo.value) {
+    alert("Kein Repository geöffnet.")
+    return
+  }
+
+  const token = localStorage.getItem("token")
+  const files = exportEditorToFiles()
+
+  const res = await fetch("http://localhost:3000/github/commit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      owner: currentRepo.value.owner,
+      repo: currentRepo.value.name,
+      branch: currentRepo.value.branch,
+      files
+    })
+  })
+
+  if (!res.ok) {
+    console.error(await res.text())
+    alert("Fehler beim Speichern in Git.")
+    return
+  }
+
+  alert("Änderungen erfolgreich in Git gespeichert!")
+}
+
+async function createNewRepository() {
+  const name = prompt("Name des neuen Repositories:")
+  if (!name) return
+
+  const token = localStorage.getItem("token")
+
+  const res = await fetch("http://localhost:3000/github/create-repo", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ name })
+  })
+
+  if (!res.ok) {
+    alert("Fehler beim Erstellen des Repositories.")
+    return
+  }
+
+  alert("Repository erfolgreich erstellt!")
+}
+
+onMounted(() => {
+  window.addEventListener("editor-git-action", onGitAction)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener("editor-git-action", onGitAction)
+})
+
+async function onGitAction(e: CustomEvent) {
+  const action = e.detail
+
+  if (action === "save-to-git") {
+    await saveCurrentRepoToGit()
+  }
+
+  if (action === "create-repo") {
+    await createNewRepository()
+  }
+}
 
 window.addEventListener("editor-open-file", async (e: any) => {
   console.log('[AppEditor] editor-open-file received:', e.detail)
