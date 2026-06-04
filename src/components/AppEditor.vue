@@ -93,6 +93,7 @@ function hardResetEditor() {
   doc.value = []
 }
 
+const currentRepoFiles = ref<string[]>([])
 
 
 const doc = ref<DocElement[]>([])
@@ -142,24 +143,27 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
     if (urlName && urlName.includes(".")) {
       fileName = urlName
     } else {
-      fileName = "image.png"
+      fileName = null   // ⭐ WICHTIG: NICHT "image.png" setzen
     }
   }
 
   const id = crypto.randomUUID()
+
+  // ⭐ Doc-Node (interne Struktur)
   const node: FigureElement = {
     id,
     kind: "figure",
-    title: fileName,
+    title: fileName ?? "figure",
     body: "",
     children: [],
-    imageName: fileName,
-    latexLabel: fileName.replace(/\.[^.]+$/, ""), // entfernt .png/.jpg/etc.
+    imageName: fileName?.split("/").pop() ?? null,
+    latexLabel: (fileName ?? "figure").replace(/\.[^.]+$/, ""),
     label: "fig:" + crypto.randomUUID()
   }
 
   doc.value.push(node)
 
+  // ⭐ VueFlow-Node (sichtbar im Editor)
   addNodes([
     {
       id,
@@ -167,10 +171,11 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
       position: { x: 300, y: 300 },
       data: {
         image: imageUrl,
-        imageName: fileName,
-        label: fileName,
+        imageName: fileName?.split("/").pop() ?? null,
+        isFromRepo: false,        // ⭐ WICHTIG: neue Node
+        label: fileName ?? "figure",
         refLabel: "fig-" + crypto.randomUUID(),
-        latexLabel: fileName.replace(/\.[^.]+$/, ""),
+        latexLabel: (fileName ?? "figure").replace(/\.[^.]+$/, ""),
         kind: "figure"
       },
       dragHandle: ".doc-node__header"
@@ -179,6 +184,7 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
 
   console.log("[AppEditor] FigureNode created:", id, fileName)
 }
+
 
 function connectToOutput(nodeId) {
   setEdges((eds) => {
@@ -208,6 +214,9 @@ async function loadEntireRepo(repo) {
   )
 
   const files = await res.json()
+
+  currentRepoFiles.value = files.map(f => f.path)
+
 
   const nodes = []
   const edges = []
@@ -239,34 +248,37 @@ async function loadEntireRepo(repo) {
     if (lower.endsWith(".tex")) {
       const id = uuid()
       const text = atob(file.content)
-      const fileName = file.path.split("/").pop() ?? "Untitled"
+      const fullPath = file.path
+      const fileName = fullPath.split("/").pop() ?? "Untitled"
 
-      // 1) Doc-Node erzeugen (für Output/LaTeX)
+      // 1) Doc-Node
       doc.value.push({
         id,
         kind: "paragraph",
         title: fileName,
         body: text,
         children: [],
-        sourceNodeId: fileName
+        sourceNodeId: id
       })
 
-      // 2) VueFlow-Node erzeugen (ECHTER ParagraphNode)
+      // 2) VueFlow-Node (ECHTER ParagraphNode)
       nodes.push({
         id,
-        type: "textArea",   // ⭐ WICHTIG: das ist der echte Node-Typ
+        type: "textArea",
         position: { x: 200, y: 200 },
         data: {
-          label: fileName,
+          label: fullPath,        // ⭐ voller Pfad!
           value: text,
           citations: [],
           figures: [],
-          status: "idle"
+          status: "idle",
+          isFromRepo: true,       // ⭐ wichtig
+          path: fullPath          // ⭐ wichtig
         },
         dragHandle: ".doc-node__header"
       })
 
-      // 3) Edge erzeugen
+      // 3) Edge
       edges.push({
         id: `e-${id}-out`,
         source: id,
@@ -276,6 +288,7 @@ async function loadEntireRepo(repo) {
 
       index++
     }
+
 
 
     if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
@@ -292,9 +305,11 @@ async function loadEntireRepo(repo) {
           imageName: filename,
           latexLabel: filename,
           refLabel: filename,
-          image: `data:image/png;base64,${file.content}`
+          image: `data:image/png;base64,${file.content}`,
+          isFromRepo: true   // ⭐ WICHTIG
         }
       })
+
 
       edges.push({
         id: `e-${id}-out`,
@@ -326,28 +341,53 @@ console.log('[AppEditor] setting up editor-open-file listener')
 function exportEditorToFiles() {
   const files = []
 
-  // ParagraphNodes → .tex
   for (const node of nodes.value) {
+
+    // ⭐ ParagraphNodes → .tex
     if (node.type === "textArea") {
+
+      // ⭐ Voller Pfad aus der Node holen
+      const fullPath = node.data.path ?? node.data.label
+
+      // ⭐ Sicherstellen, dass .tex dran hängt
+      const filePath = fullPath.endsWith(".tex")
+          ? fullPath
+          : `${fullPath}.tex`
+
       files.push({
-        path: node.data.label,
+        path: filePath,   // ⭐ voller Pfad, nicht nur Dateiname!
         content: btoa(node.data.value ?? "")
       })
-    }
-  }
 
-  // FigureNodes → .png
-  for (const node of nodes.value) {
+      continue
+    }
+
+    // ⭐ FigureNodes → .png
     if (node.type === "figureNode") {
+
+      const name = node.data.imageName
+      const direct = node.data.image
+      const cached = name && imageCache.value?.[name]?.base64
+
+      if (!direct && !cached) continue
+
+      // ⭐ Ordner entfernen → nur Dateiname behalten
+      const fileName = name.split("/").pop()
+
+      const src = direct ?? cached
+      const base64 = src.replace(/^data:image\/\w+;base64,/, "")
+
       files.push({
-        path: node.data.imageName,
-        content: node.data.image.replace("data:image/png;base64,", "")
+        path: fileName,   // ⭐ landet IMMER im Root
+        content: base64
       })
     }
+
   }
 
   return files
 }
+
 
 async function saveCurrentRepoToGit() {
   if (!currentRepo.value) {
@@ -356,30 +396,129 @@ async function saveCurrentRepoToGit() {
   }
 
   const token = localStorage.getItem("token")
-  const files = exportEditorToFiles()
 
-  const res = await fetch("http://localhost:3000/github/commit", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      owner: currentRepo.value.owner,
-      repo: currentRepo.value.name,
-      branch: currentRepo.value.branch,
-      files
-    })
+  // Hilfsfunktion: Originalpfad wiederfinden
+  function findOriginalPath(fileName, repoPaths) {
+    return repoPaths.find(p => p.endsWith("/" + fileName)) ?? fileName
+  }
+
+  // ⭐ 1. Dateien aus dem Editor exportieren
+  const editorFiles = exportEditorToFiles()
+  const editorPaths = editorFiles.map(f => f.path)
+
+  // ⭐ 2. Dateien aus dem Repo (beim Laden gespeichert)
+  const repoPaths = currentRepoFiles.value
+
+  // ⭐ 3. Vergleich
+  const editorFileNames = editorPaths.map(p => p.split("/").pop())
+
+  const toDelete = repoPaths.filter(repoPath => {
+    const repoFileName = repoPath.split("/").pop()
+    return !editorFileNames.includes(repoFileName)
   })
 
-  if (!res.ok) {
-    console.error(await res.text())
-    alert("Fehler beim Speichern in Git.")
-    return
+  // Nur Dateinamen vergleichen
+  const repoFileNames = repoPaths.map(p => p.split("/").pop())
+
+  const toCreate = editorFiles.filter(f => {
+    const editorFileName = f.path.split("/").pop()
+    return !repoFileNames.includes(editorFileName)
+  })
+
+  const toUpdate = editorFiles.filter(f => {
+    const editorFileName = f.path.split("/").pop()
+    return repoFileNames.includes(editorFileName)
+  })
+
+  console.log("DELETE:", toDelete)
+  console.log("CREATE:", toCreate)
+  console.log("UPDATE:", toUpdate)
+
+  // ⭐ 4. Dateien löschen
+  for (const path of toDelete) {
+    await fetch("http://localhost:3000/github/delete-file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        owner: currentRepo.value.owner,
+        repo: currentRepo.value.name,
+        path
+      })
+    })
+  }
+
+  // ⭐ 5. Dateien erstellen
+  for (const file of toCreate) {
+
+    // ⭐ ORIGINALPFAD WIEDERHERSTELLEN
+    const fileName = file.path.split("/").pop()
+    const originalPath = findOriginalPath(fileName, repoPaths)
+
+    await fetch("http://localhost:3000/github/create-file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        owner: currentRepo.value.owner,
+        repo: currentRepo.value.name,
+        path: originalPath,   // ⭐ WICHTIG
+        base64: file.content
+      })
+    })
+  }
+
+  // ⭐ 6. Dateien aktualisieren
+  for (const file of toUpdate) {
+
+    const fileName = file.path.split("/").pop()
+    const originalPath = findOriginalPath(fileName, repoPaths)
+
+    const isImage = /\.(png|jpg|jpeg)$/i.test(fileName)
+
+    if (isImage) {
+      await fetch("http://localhost:3000/github/update-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          owner: currentRepo.value.owner,
+          repo: currentRepo.value.name,
+          path: originalPath,   // ⭐ WICHTIG
+          base64: file.content
+        })
+      })
+    } else {
+      await fetch("http://localhost:3000/github/save-text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          owner: currentRepo.value.owner,
+          repo: currentRepo.value.name,
+          path: originalPath,   // ⭐ WICHTIG
+          content: atob(file.content)
+        })
+      })
+    }
   }
 
   alert("Änderungen erfolgreich in Git gespeichert!")
+
+  // ⭐ 7. Repo-Dateiliste aktualisieren
+  currentRepoFiles.value = files.map(f => f.path)
+
 }
+
+
 
 async function createNewRepository() {
   const name = prompt("Name des neuen Repositories:")
