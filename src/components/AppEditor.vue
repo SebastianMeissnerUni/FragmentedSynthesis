@@ -143,13 +143,13 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
     if (urlName && urlName.includes(".")) {
       fileName = urlName
     } else {
-      fileName = null   // ⭐ WICHTIG: NICHT "image.png" setzen
+      fileName = null   // WICHTIG: NICHT "image.png" setzen
     }
   }
 
   const id = crypto.randomUUID()
 
-  // ⭐ Doc-Node (interne Struktur)
+  // Doc-Node (interne Struktur)
   const node: FigureElement = {
     id,
     kind: "figure",
@@ -163,7 +163,7 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
 
   doc.value.push(node)
 
-  // ⭐ VueFlow-Node (sichtbar im Editor)
+  // VueFlow-Node (sichtbar im Editor)
   addNodes([
     {
       id,
@@ -172,7 +172,7 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
       data: {
         image: imageUrl,
         imageName: fileName?.split("/").pop() ?? null,
-        isFromRepo: false,        // ⭐ WICHTIG: neue Node
+        isFromRepo: false,        // WICHTIG: neue Node
         label: fileName ?? "figure",
         refLabel: "fig-" + crypto.randomUUID(),
         latexLabel: (fileName ?? "figure").replace(/\.[^.]+$/, ""),
@@ -221,7 +221,7 @@ async function loadEntireRepo(repo) {
   const nodes = []
   const edges = []
 
-  // ⭐ Output-Node zuerst
+  // Output-Node zuerst
   nodes.push({
     id: "docOutput",
     type: "docOutput",
@@ -261,19 +261,19 @@ async function loadEntireRepo(repo) {
         sourceNodeId: id
       })
 
-      // 2) VueFlow-Node (ECHTER ParagraphNode)
+      // 2) VueFlow-Node
       nodes.push({
         id,
         type: "textArea",
         position: { x: 200, y: 200 },
         data: {
-          label: fullPath,        // ⭐ voller Pfad!
+          label: fullPath,
           value: text,
           citations: [],
           figures: [],
           status: "idle",
-          isFromRepo: true,       // ⭐ wichtig
-          path: fullPath          // ⭐ wichtig
+          isFromRepo: true,
+          path: fullPath
         },
         dragHandle: ".doc-node__header"
       })
@@ -306,7 +306,7 @@ async function loadEntireRepo(repo) {
           latexLabel: filename,
           refLabel: filename,
           image: `data:image/png;base64,${file.content}`,
-          isFromRepo: true   // ⭐ WICHTIG
+          isFromRepo: true
         }
       })
 
@@ -322,8 +322,6 @@ async function loadEntireRepo(repo) {
     }
 
   }
-
-  // ⭐ Jetzt ALLES auf einmal setzen
   setNodes(nodes)
   setEdges(edges)
 
@@ -343,26 +341,25 @@ function exportEditorToFiles() {
 
   for (const node of nodes.value) {
 
-    // ⭐ ParagraphNodes → .tex
-    if (node.type === "textArea") {
+    // ParagraphNodes → .tex
+    if (node.type === "textArea" || node.type === "textView") {
 
-      // ⭐ Voller Pfad aus der Node holen
-      const fullPath = node.data.path ?? node.data.label
+      // Falls kein Pfad existiert → eindeutigen Pfad erzeugen
+      if (!node.data.path) {
+        node.data.path = `paragraph_${node.id}.tex`
+      }
 
-      // ⭐ Sicherstellen, dass .tex dran hängt
-      const filePath = fullPath.endsWith(".tex")
-          ? fullPath
-          : `${fullPath}.tex`
+      const filePath = node.data.path
 
       files.push({
-        path: filePath,   // ⭐ voller Pfad, nicht nur Dateiname!
-        content: btoa(node.data.value ?? "")
+        path: filePath,
+        content: btoa(node.data.value ?? node.data.text ?? "")
       })
 
       continue
     }
 
-    // ⭐ FigureNodes → .png
+    // FigureNodes → .png
     if (node.type === "figureNode") {
 
       const name = node.data.imageName
@@ -371,14 +368,14 @@ function exportEditorToFiles() {
 
       if (!direct && !cached) continue
 
-      // ⭐ Ordner entfernen → nur Dateiname behalten
+      // Ordner entfernen → nur Dateiname behalten
       const fileName = name.split("/").pop()
 
       const src = direct ?? cached
       const base64 = src.replace(/^data:image\/\w+;base64,/, "")
 
       files.push({
-        path: fileName,   // ⭐ landet IMMER im Root
+        path: fileName,   //  landet IMMER im Root
         content: base64
       })
     }
@@ -402,14 +399,14 @@ async function saveCurrentRepoToGit() {
     return repoPaths.find(p => p.endsWith("/" + fileName)) ?? fileName
   }
 
-  // ⭐ 1. Dateien aus dem Editor exportieren
+  // 1. Dateien aus dem Editor exportieren
   const editorFiles = exportEditorToFiles()
   const editorPaths = editorFiles.map(f => f.path)
 
-  // ⭐ 2. Dateien aus dem Repo (beim Laden gespeichert)
+  // 2. Dateien aus dem Repo (beim Laden gespeichert)
   const repoPaths = currentRepoFiles.value
 
-  // ⭐ 3. Vergleich
+  // 3. Vergleich
   const editorFileNames = editorPaths.map(p => p.split("/").pop())
 
   const toDelete = repoPaths.filter(repoPath => {
@@ -434,7 +431,7 @@ async function saveCurrentRepoToGit() {
   console.log("CREATE:", toCreate)
   console.log("UPDATE:", toUpdate)
 
-  // ⭐ 4. Dateien löschen
+  // 4. Dateien löschen
   for (const path of toDelete) {
     await fetch("http://localhost:3000/github/delete-file", {
       method: "POST",
@@ -450,10 +447,10 @@ async function saveCurrentRepoToGit() {
     })
   }
 
-  // ⭐ 5. Dateien erstellen
+  // 5. Dateien erstellen
   for (const file of toCreate) {
 
-    // ⭐ ORIGINALPFAD WIEDERHERSTELLEN
+    // ORIGINALPFAD WIEDERHERSTELLEN
     const fileName = file.path.split("/").pop()
     const originalPath = findOriginalPath(fileName, repoPaths)
 
@@ -466,13 +463,13 @@ async function saveCurrentRepoToGit() {
       body: JSON.stringify({
         owner: currentRepo.value.owner,
         repo: currentRepo.value.name,
-        path: originalPath,   // ⭐ WICHTIG
+        path: originalPath,
         base64: file.content
       })
     })
   }
 
-  // ⭐ 6. Dateien aktualisieren
+  // 6. Dateien aktualisieren
   for (const file of toUpdate) {
 
     const fileName = file.path.split("/").pop()
@@ -490,7 +487,7 @@ async function saveCurrentRepoToGit() {
         body: JSON.stringify({
           owner: currentRepo.value.owner,
           repo: currentRepo.value.name,
-          path: originalPath,   // ⭐ WICHTIG
+          path: originalPath,
           base64: file.content
         })
       })
@@ -504,7 +501,7 @@ async function saveCurrentRepoToGit() {
         body: JSON.stringify({
           owner: currentRepo.value.owner,
           repo: currentRepo.value.name,
-          path: originalPath,   // ⭐ WICHTIG
+          path: originalPath,
           content: atob(file.content)
         })
       })
@@ -513,19 +510,19 @@ async function saveCurrentRepoToGit() {
 
   alert("Änderungen erfolgreich in Git gespeichert!")
 
-  // ⭐ 7. Repo-Dateiliste aktualisieren
-  currentRepoFiles.value = files.map(f => f.path)
+  // 7. Repo-Dateiliste aktualisieren
+  currentRepoFiles.value = editorFiles.map(f => f.path)
 
 }
-
-
 
 async function createNewRepository() {
   const name = prompt("Name des neuen Repositories:")
   if (!name) return
 
   const token = localStorage.getItem("token")
+  const githubUsername = localStorage.getItem("github_username")
 
+  // 1) Repo erstellen
   const res = await fetch("http://localhost:3000/github/create-repo", {
     method: "POST",
     headers: {
@@ -540,8 +537,44 @@ async function createNewRepository() {
     return
   }
 
-  alert("Repository erfolgreich erstellt!")
+  // 2) Repo-Infos setzen
+  currentRepo.value = {
+    owner: githubUsername,
+    name: name,
+    branch: "main"
+  }
+
+
+  // 3) Repo ist leer → keine Dateien
+  currentRepoFiles.value = []
+
+  // 4) Editor-Dateien exportieren
+  const editorFiles = exportEditorToFiles()
+
+  // 5) Alle Dateien ins neue Repo hochladen
+  for (const file of editorFiles) {
+    await fetch("http://localhost:3000/github/create-file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        owner: currentRepo.value.owner,
+        repo: currentRepo.value.name,
+        path: file.path,
+        base64: file.content
+      })
+    })
+  }
+
+  // 6) Editor-Repo-Dateiliste aktualisieren
+  currentRepoFiles.value = editorFiles.map(f => f.path)
+
+  alert("Repository erfolgreich erstellt und Dateien hochgeladen!")
 }
+
+
 
 onMounted(() => {
   window.addEventListener("editor-git-action", onGitAction)

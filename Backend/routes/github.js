@@ -3,6 +3,8 @@ const router = express.Router();
 const db = require("../utils/db");
 const axios = require("axios");
 const { authenticateToken } = require("../controllers/authController");
+const USER_AGENT = "MyApp-" + Math.random().toString(36).substring(2, 10);
+
 
 // Liste aller Repos
 router.get("/repos", authenticateToken, (req, res) => {
@@ -448,7 +450,7 @@ router.post("/delete-file", authenticateToken, (req, res) => {
     );
 });
 
-// ⭐ GANZES REPO committen
+// GANZES REPO committen
 router.post("/commit", authenticateToken, (req, res) => {
     const { owner, repo, branch, files } = req.body;
 
@@ -553,7 +555,7 @@ router.post("/commit", authenticateToken, (req, res) => {
     );
 });
 
-// ⭐ Neues GitHub-Repository erstellen
+// Neues GitHub-Repository erstellen
 router.post("/create-repo", authenticateToken, (req, res) => {
     const { name, description = "", isPrivate = false } = req.body;
 
@@ -582,8 +584,10 @@ router.post("/create-repo", authenticateToken, (req, res) => {
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
-                            Accept: "application/vnd.github+json"
+                            Accept: "application/vnd.github+json",
+                            "User-Agent": USER_AGENT
                         }
+
                     }
                 );
 

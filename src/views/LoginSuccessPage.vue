@@ -6,6 +6,9 @@ import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
+const params = new URLSearchParams(window.location.search);
+
+localStorage.setItem("github_username", params.get("github_username"));
 
 onMounted(async () => {
   // Token aus Query lesen

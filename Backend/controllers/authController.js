@@ -156,7 +156,9 @@ exports.githubCallback = async (req, res) => {
             id: userResponse.data.id,
             name: userResponse.data.name,
             avatar: userResponse.data.avatar_url,
-            email: emailResponse.data.find(e => e.primary)?.email
+            email: emailResponse.data.find(e => e.primary)?.email,
+            github_username: userResponse.data.login
+
         };
 
         // Weiter zur Login/Registrierung
@@ -180,24 +182,26 @@ exports.githubLoginOrRegister = (githubUser, res, githubAccessToken) => {
 
                 // GitHub Token aktualisieren
                 db.run(
-                    "UPDATE users SET github_access_token = ? WHERE id = ?",
-                    [githubAccessToken, user.id]
+                    "UPDATE users SET github_access_token = ?, github_username = ? WHERE id = ?",
+                    [githubAccessToken, githubUser.github_username, user.id]
                 );
 
                 const token = jwt.sign({ id: user.id }, "SECRET123", { expiresIn: "6h" });
-                return res.redirect(`http://localhost:5173/login-success?token=${token}`);
+                return res.redirect(
+                    `http://localhost:5173/login-success?token=${token}&github_username=${githubUser.github_username}`
+                );
             }
 
             // --- USER EXISTIERT NICHT → ANLEGEN ---
             db.run(
-                "INSERT INTO users (provider, provider_user_id, username, email, avatar_url, github_access_token) VALUES (?, ?, ?, ?, ?, ?)",
-                ["github", githubUser.id, githubUser.name, githubUser.email, githubUser.avatar, githubAccessToken],
+                "INSERT INTO users (provider, provider_user_id, username, email, avatar_url, github_access_token, github_username) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ["github", githubUser.id, githubUser.name, githubUser.email, githubUser.avatar, githubAccessToken, githubUser.github_username],
                 function (err) {
                     if (err) return res.status(500).json({ error: "DB error" });
 
                     const token = jwt.sign({ id: this.lastID }, "SECRET123", { expiresIn: "6h" });
 
-                    return res.redirect(`http://localhost:5173/login-success?token=${token}`);
+                    return res.redirect(`http://localhost:5173/login-success?token=${token}&github_username=${githubUser.github_username}`);
                 }
             );
         }
@@ -249,8 +253,10 @@ exports.me = (req, res) => {
 
             res.json({
                 id: user.id,
-                email
+                email,
+                github_username: user.github_username
             });
+
         }
     );
 };
