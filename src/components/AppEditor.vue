@@ -215,7 +215,11 @@ async function loadEntireRepo(repo) {
 
   const files = await res.json()
 
-  currentRepoFiles.value = files.map(f => f.path)
+  currentRepoFiles.value = files.map(f => ({
+        path: f.path,
+        hash: atob(f.content),   // ROH-TEXT
+      }))
+
 
 
   const nodes = []
@@ -351,10 +355,14 @@ function exportEditorToFiles() {
 
       const filePath = node.data.path
 
+      const raw = node.data.value ?? node.data.text ?? ""
+
       files.push({
         path: filePath,
-        content: btoa(node.data.value ?? node.data.text ?? "")
+        content: btoa(raw),   // für Git
+        raw,                  // für Vergleich
       })
+
 
       continue
     }
@@ -376,7 +384,8 @@ function exportEditorToFiles() {
 
       files.push({
         path: fileName,   //  landet IMMER im Root
-        content: base64
+        content: base64,
+        hash: base64
       })
     }
 
@@ -394,45 +403,41 @@ async function saveCurrentRepoToGit() {
 
   const token = localStorage.getItem("token")
 
-  // Hilfsfunktion: Originalpfad wiederfinden
   function findOriginalPath(fileName, repoPaths) {
-    return repoPaths.find(p => p.endsWith("/" + fileName)) ?? fileName
+    const match = repoPaths.find(p => p.path.endsWith("/" + fileName))
+    return match ? match.path : fileName
   }
 
-  // 1. Dateien aus dem Editor exportieren
   const editorFiles = exportEditorToFiles()
-  const editorPaths = editorFiles.map(f => f.path)
-
-  // 2. Dateien aus dem Repo (beim Laden gespeichert)
   const repoPaths = currentRepoFiles.value
 
-  // 3. Vergleich
-  const editorFileNames = editorPaths.map(p => p.split("/").pop())
-
-  const toDelete = repoPaths.filter(repoPath => {
-    const repoFileName = repoPath.split("/").pop()
-    return !editorFileNames.includes(repoFileName)
-  })
-
-  // Nur Dateinamen vergleichen
-  const repoFileNames = repoPaths.map(p => p.split("/").pop())
+  const repoByName = Object.fromEntries(
+      repoPaths.map(p => [p.path.split("/").pop(), p])
+  )
 
   const toCreate = editorFiles.filter(f => {
-    const editorFileName = f.path.split("/").pop()
-    return !repoFileNames.includes(editorFileName)
+    const name = f.path.split("/").pop()
+    return !repoByName[name]
+  })
+
+  const toDelete = repoPaths.filter(p => {
+    const name = p.path.split("/").pop()
+    return !editorFiles.find(e => e.path.split("/").pop() === name)
   })
 
   const toUpdate = editorFiles.filter(f => {
-    const editorFileName = f.path.split("/").pop()
-    return repoFileNames.includes(editorFileName)
+    const name = f.path.split("/").pop()
+    return repoByName[name]
   })
 
   console.log("DELETE:", toDelete)
   console.log("CREATE:", toCreate)
   console.log("UPDATE:", toUpdate)
 
-  // 4. Dateien löschen
-  for (const path of toDelete) {
+  // DELETE
+  for (const file of toDelete) {
+    const path = file.path
+
     await fetch("http://localhost:3000/github/delete-file", {
       method: "POST",
       headers: {
@@ -447,10 +452,8 @@ async function saveCurrentRepoToGit() {
     })
   }
 
-  // 5. Dateien erstellen
+  // CREATE
   for (const file of toCreate) {
-
-    // ORIGINALPFAD WIEDERHERSTELLEN
     const fileName = file.path.split("/").pop()
     const originalPath = findOriginalPath(fileName, repoPaths)
 
@@ -469,11 +472,18 @@ async function saveCurrentRepoToGit() {
     })
   }
 
-  // 6. Dateien aktualisieren
+  // UPDATE
   for (const file of toUpdate) {
-
     const fileName = file.path.split("/").pop()
     const originalPath = findOriginalPath(fileName, repoPaths)
+
+    const repoFile = repoPaths.find(r => r.path.endsWith("/" + fileName))
+
+    if (repoFile && repoFile.hash === file.raw)
+    {
+      console.log("UNCHANGED → skip update:", fileName)
+      continue
+    }
 
     const isImage = /\.(png|jpg|jpeg)$/i.test(fileName)
 
@@ -510,10 +520,12 @@ async function saveCurrentRepoToGit() {
 
   alert("Änderungen erfolgreich in Git gespeichert!")
 
-  // 7. Repo-Dateiliste aktualisieren
-  currentRepoFiles.value = editorFiles.map(f => f.path)
-
+  currentRepoFiles.value = editorFiles.map(f => ({
+    path: f.path,
+    hash: f.content
+  }))
 }
+
 
 async function createNewRepository() {
   const name = prompt("Name des neuen Repositories:")
