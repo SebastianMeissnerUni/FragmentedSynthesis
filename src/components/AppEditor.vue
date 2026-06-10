@@ -79,6 +79,13 @@ export interface EdgeMouseEvent {
 
 //Globally provided data:
 
+function decodeBase64UTF8(b64: string): string {
+  return new TextDecoder("utf-8").decode(
+      Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+  )
+}
+
+
 const currentRepo = ref(null)
 
 onMounted(() => {
@@ -215,12 +222,23 @@ async function loadEntireRepo(repo) {
 
   const files = await res.json()
 
-  currentRepoFiles.value = files.map(f => ({
+  currentRepoFiles.value = files.map(f => {
+    const lower = f.path.toLowerCase()
+
+    // TEXTDATEIEN → ROH-TEXT als Hash
+    if (lower.endsWith(".tex")) {
+      return {
         path: f.path,
-        hash: atob(f.content),   // ROH-TEXT
-      }))
+        hash: decodeBase64UTF8(f.content) // stabiler Text
+      }
+    }
 
-
+    // BILDER → ORIGINAL-BASE64 als Hash
+    return {
+      path: f.path,
+      hash: f.content           // stabiler Bild-Hash
+    }
+  })
 
   const nodes = []
   const edges = []
@@ -251,7 +269,7 @@ async function loadEntireRepo(repo) {
 
     if (lower.endsWith(".tex")) {
       const id = uuid()
-      const text = atob(file.content)
+      const text = decodeBase64UTF8(file.content)
       const fullPath = file.path
       const fileName = fullPath.split("/").pop() ?? "Untitled"
 
@@ -427,8 +445,18 @@ async function saveCurrentRepoToGit() {
 
   const toUpdate = editorFiles.filter(f => {
     const name = f.path.split("/").pop()
-    return repoByName[name]
+    const repoFile = repoByName[name]
+    if (!repoFile) return false
+
+    // TEXTDATEIEN
+    if (name.endsWith(".tex")) {
+      return repoFile.hash !== f.raw
+    }
+
+    // BILDER
+    return repoFile.hash !== f.content
   })
+
 
   console.log("DELETE:", toDelete)
   console.log("CREATE:", toCreate)
@@ -479,8 +507,7 @@ async function saveCurrentRepoToGit() {
 
     const repoFile = repoPaths.find(r => r.path.endsWith("/" + fileName))
 
-    if (repoFile && repoFile.hash === file.raw)
-    {
+    if (repoFile && repoFile.hash === file.raw) {
       console.log("UNCHANGED → skip update:", fileName)
       continue
     }
@@ -520,14 +547,27 @@ async function saveCurrentRepoToGit() {
 
   alert("Änderungen erfolgreich in Git gespeichert!")
 
-  currentRepoFiles.value = editorFiles.map(f => ({
-    path: f.path,
-    hash: f.content
-  }))
+  currentRepoFiles.value = editorFiles.map(f => {
+    const name = f.path.split("/").pop()
+
+    // TEXTDATEIEN
+    if (name.endsWith(".tex")) {
+      return {
+        path: f.path,
+        hash: f.raw
+      }
+    }
+
+    // BILDER
+    return {
+      path: f.path,
+      hash: f.content
+    }
+  })
 }
 
 
-async function createNewRepository() {
+  async function createNewRepository() {
   const name = prompt("Name des neuen Repositories:")
   if (!name) return
 
@@ -1089,12 +1129,14 @@ const userEmail = ref(localStorage.getItem('userEmail') || 'Nicht angemeldet');
 provide('userEmail', userEmail);
 
 
-watch(nodes, (newNodes) => {
-  const usedRefLabels = new Set(newNodes
-      .filter(n => n.type === 'figureNode')  // nur Figure Nodes
-      .map(n => n.data?.refLabel)
-      .filter(Boolean) as string[]
-  )})
+watch(() => nodes.value
+        .filter(n => n.type === 'figureNode')
+        .map(n => n.data?.refLabel)
+        .filter(Boolean),
+    (newLabels) => {
+      const usedRefLabels = new Set(newLabels)
+    })
+
 
 watch(designMode, (mode) => {
   if (mode === 'disco') {
