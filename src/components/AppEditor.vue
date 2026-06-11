@@ -79,12 +79,67 @@ export interface EdgeMouseEvent {
 
 //Globally provided data:
 
+function encodeBase64UTF8(str: string): string {
+  return btoa(unescape(encodeURIComponent(str)))
+}
+
 function decodeBase64UTF8(b64: string): string {
   return new TextDecoder("utf-8").decode(
       Uint8Array.from(atob(b64), c => c.charCodeAt(0))
   )
 }
 
+async function refreshFromGit() {
+  if (!currentRepo.value) {
+    alert("Kein Repository geöffnet.")
+    return
+  }
+
+  const token = localStorage.getItem("token")
+  const repo = currentRepo.value
+
+  const res = await fetch(
+      `http://localhost:3000/github/repo-tree?owner=${repo.owner}&repo=${repo.name}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+  )
+
+  const gitFiles = await res.json()
+  const texFiles = gitFiles.filter(f => f.path.toLowerCase().endsWith(".tex"))
+
+  let changed = false
+
+  for (const file of texFiles) {
+    const decoded = decodeBase64UTF8(file.content)
+
+    const node = nodes.value.find(n =>
+        (n.type === "textArea" || n.type === "textView") &&
+        n.data.path === file.path
+    )
+
+    if (!node) continue
+
+    if (node.data.value !== decoded) {
+      console.log("Aktualisiere aus Git:", file.path)
+
+      node.data = {
+        ...node.data,
+        value: decoded,
+        text: decoded
+      }
+
+      const docNode = doc.value.find(d => d.id === node.id)
+      if (docNode) docNode.body = decoded
+
+      changed = true
+    }
+  }
+
+  if (changed) {
+    nodes.value = [...nodes.value] // VueFlow rerender
+  }
+
+  alert("Änderungen aus Git wurden übernommen.")
+}
 
 const currentRepo = ref(null)
 
@@ -377,7 +432,7 @@ function exportEditorToFiles() {
 
       files.push({
         path: filePath,
-        content: btoa(raw),   // für Git
+        content: encodeBase64UTF8(raw),   // für Git
         raw,                  // für Vergleich
       })
 
@@ -438,10 +493,19 @@ async function saveCurrentRepoToGit() {
     return !repoByName[name]
   })
 
+  const managedExtensions = [".tex", ".png", ".jpg", ".jpeg"]
+
   const toDelete = repoPaths.filter(p => {
+    const lower = p.path.toLowerCase()
+
+    // Nur Dateien löschen, die der Editor verwaltet
+    const isManaged = managedExtensions.some(ext => lower.endsWith(ext))
+    if (!isManaged) return false
+
     const name = p.path.split("/").pop()
     return !editorFiles.find(e => e.path.split("/").pop() === name)
   })
+
 
   const toUpdate = editorFiles.filter(f => {
     const name = f.path.split("/").pop()
@@ -539,8 +603,9 @@ async function saveCurrentRepoToGit() {
           owner: currentRepo.value.owner,
           repo: currentRepo.value.name,
           path: originalPath,
-          content: atob(file.content)
-        })
+          content: file.content
+
+    })
       })
     }
   }
@@ -646,7 +711,12 @@ async function onGitAction(e: CustomEvent) {
   if (action === "create-repo") {
     await createNewRepository()
   }
+
+  if (action === "refresh-from-git") {
+    await refreshFromGit()
+  }
 }
+
 
 window.addEventListener("editor-open-file", async (e: any) => {
   console.log('[AppEditor] editor-open-file received:', e.detail)

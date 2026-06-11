@@ -276,7 +276,7 @@ router.post("/save-text", authenticateToken, (req, res) => {
                     `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
                     {
                         message: message || "Update text file",
-                        content: Buffer.from(content).toString("base64"),
+                        content,
                         sha
                     },
                     { headers: { Authorization: `Bearer ${row.github_access_token}` } }

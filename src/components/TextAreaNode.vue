@@ -455,6 +455,15 @@ watch(language, () => {
   }
 })
 
+watch(
+    () => props.data.value,
+    (newVal) => {
+      if (newVal !== text.value) {
+        text.value = newVal ?? ''
+      }
+    }
+)
+
 function undo(textarea: HTMLTextAreaElement | null) {
   if (!textarea) return
   document.execCommand('undo') // ruft die Browser-Undo-Funktion auf
