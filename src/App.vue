@@ -1,9 +1,21 @@
 <script setup lang="ts">
 import { provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import type { BibEntry } from '@/components/AppEditor.vue'
+
 
 const route = useRoute()
 const editorRef = ref(null)
+
+
+
+const bibliography = ref<BibEntry[]>([])
+provide('bibliography', bibliography)
+
+const updateBibliography = (newBib: BibEntry[]) => {
+  bibliography.value = newBib
+}
+provide('updateBibliography', updateBibliography)
 
 provide('openInEditor', (file) => {
   console.log("[App] openInEditor:", file)

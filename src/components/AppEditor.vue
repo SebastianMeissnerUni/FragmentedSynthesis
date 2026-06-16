@@ -14,6 +14,12 @@ import { parseLatexToNodesAndEdges } from "@/api/NewLatexParser"
 import { parseOverleafZip } from "@/api/OverleafParser"
 import { useDemo } from "@/api/demo"
 import { v4 as uuid } from "uuid"
+import type { Ref } from 'vue'
+
+
+const bibliography = inject<Ref<BibEntry[]>>('bibliography')!
+const updateBibliography = inject<(newBib: BibEntry[]) => void>('updateBibliography')!
+
 
 
 
@@ -29,6 +35,7 @@ import StickyNote from './StickyNote.vue'
 import FigureNode from './FigureNode.vue'
 import TourGuideNode from './TourGuideNode.vue'
 import MagicLatexNode from './MagicLatexNode.vue'
+import { parseBibtex } from '@/api/bibtex'
 
 
 //Interfaces for globally provided data:
@@ -163,6 +170,7 @@ provide("doc", doc)
 
 const imageCache = ref<ImageCache>({})
 provide('imageCache', imageCache)
+
 
 const addParagraphNode = (text: string, filePath: string) => {
   const fileName = filePath.split("/").pop() ?? "Untitled"
@@ -307,7 +315,6 @@ async function loadEntireRepo(repo) {
       label: "Document Output",
       json: "[]",
       value: "",
-      bibliography: [],
       width: 600,
       height: 800
     },
@@ -396,6 +403,14 @@ async function loadEntireRepo(repo) {
       })
 
       index++
+    }
+
+    if (lower.endsWith(".bib")) {
+      const bibContent = decodeBase64UTF8(file.content)
+      const entries = parseBibtex(bibContent)
+      bibliography.value.push(...entries)
+
+      console.log("[AppEditor] BibTeX geladen:", entries.length, "Einträge")
     }
 
   }
@@ -918,11 +933,6 @@ const nodes = ref<Node[]>([])
 const edges = ref<Edge[]>([])
 provide('nodes', nodes)
 provide('edges', edges)
-
-const bibliography = ref<BibEntry[]>([])
-provide('bibliography', bibliography)
-const updateBibliography = (newBib: BibEntry[]) => {bibliography.value = newBib}
-provide('updateBibliography', updateBibliography)
 
 const TLDR = ref(false)
 provide('TLDR', TLDR)

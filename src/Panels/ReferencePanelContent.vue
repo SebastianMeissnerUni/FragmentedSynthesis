@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, inject, type Ref } from 'vue'
-import type {BibEntry} from "@/App.vue";
+import type { BibEntry } from "@/components/AppEditor.vue"
+
 
 
 const bibliography = inject<Ref<BibEntry[]>>('bibliography', ref([]))!
@@ -28,15 +29,27 @@ function parseBibtex(input: string): BibEntry[] {
 }
 
 function importBibtex() {
+  console.log('[RefPanel] raw input:', rawBibtexInput.value)
+
   const newEntries = parseBibtex(rawBibtexInput.value)
+  console.log('[RefPanel] parsed entries:', newEntries)
+
+  console.log('[RefPanel] before import, bibliography:', bibliography.value)
+
   const uniqueNewEntries = newEntries.filter(
       entry => !bibliography.value.some(e => e.id === entry.id)
   )
+
   if (uniqueNewEntries.length > 0) {
     updateBibliography([...bibliography.value, ...uniqueNewEntries])
+    console.log('[RefPanel] after import, bibliography:', bibliography.value)
+  } else {
+    console.log('[RefPanel] no unique entries to add')
   }
+
   rawBibtexInput.value = ''
 }
+
 
 function formatEntry(entry: BibEntry): string {
   const authorsRaw = entry.fields.author || ''
