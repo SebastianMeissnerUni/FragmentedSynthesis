@@ -17,6 +17,7 @@ type ImageCache = Record<string, ImageCacheEntry>
 
 const imageCache = inject<Ref<ImageCache>>('imageCache')!
 
+
 interface TextNodeData {
   value?: string
   label?: string
@@ -46,7 +47,7 @@ const textAreaRef = ref<HTMLTextAreaElement | null>(null)
 const cursorPos = ref<{ start: number; end: number }>({start: 0, end: 0})
 const searchQuery = ref('')
 const showSearch = ref(false)
-const COMPLETE_CITATION_REGEX = /~\\cite\{([^\}]+)\}(?=\s|$)/g;
+const COMPLETE_CITATION_REGEX = /\\cite\s*\{([^}]+)\}/g;
 const nodeRef = ref<HTMLElement | null>(null)
 let resizeObs: ResizeObserver | null = null
 let resizeRaf: number | null = null
@@ -303,7 +304,7 @@ watch(bibliography, (newBib) => {
   );
 
   // Alle ungültigen Zitate entfernen
-  invalidCitations.forEach(key => removeCitation(key));
+  console.warn("Invalid citation:", key);
 }, {deep: true})
 
 
