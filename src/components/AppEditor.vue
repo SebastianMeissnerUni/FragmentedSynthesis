@@ -19,6 +19,8 @@ import type { Ref } from 'vue'
 
 const bibliography = inject<Ref<BibEntry[]>>('bibliography')!
 const updateBibliography = inject<(newBib: BibEntry[]) => void>('updateBibliography')!
+const isLoading = inject<Ref<boolean>>("isLoading")!
+
 
 
 
@@ -273,6 +275,7 @@ function connectToOutput(nodeId) {
 }
 
 async function loadEntireRepo(repo) {
+  isLoading.value = true
   console.log("[AppEditor] Lade komplettes Repo:", repo)
 
   hardResetEditor()
@@ -424,6 +427,7 @@ async function loadEntireRepo(repo) {
     name: repo.name,
     branch: repo.default_branch ?? "main"
   }
+  isLoading.value = false
 }
 
 console.log('[AppEditor] setting up editor-open-file listener')

@@ -2,11 +2,14 @@
 import { provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import type { BibEntry } from '@/components/AppEditor.vue'
+import LoadingOverlay from "@/components/LoadingOverlay.vue";
 
 
 const route = useRoute()
 const editorRef = ref(null)
 
+const isLoading = ref(false)
+provide("isLoading", isLoading)
 
 
 const bibliography = ref<BibEntry[]>([])
@@ -32,6 +35,7 @@ provide('openInEditor', (file) => {
 </script>
 
 <template>
+  <LoadingOverlay />
   <div class="app-container">
     <router-view ref="editorRef" />
   </div>
