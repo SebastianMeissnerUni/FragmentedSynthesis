@@ -104,6 +104,8 @@ async function refreshFromGit() {
     return
   }
 
+  isLoading.value = true
+
   const token = localStorage.getItem("token")
   const repo = currentRepo.value
 
@@ -146,6 +148,7 @@ async function refreshFromGit() {
   if (changed) {
     nodes.value = [...nodes.value] // VueFlow rerender
   }
+  isLoading.value = false
 
   alert("Änderungen aus Git wurden übernommen.")
 }
@@ -493,6 +496,8 @@ async function saveCurrentRepoToGit() {
     return
   }
 
+  isLoading.value = true
+
   const token = localStorage.getItem("token")
 
   function findOriginalPath(fileName, repoPaths) {
@@ -648,6 +653,7 @@ async function saveCurrentRepoToGit() {
       hash: f.content
     }
   })
+  isLoading.value = false
 }
 
 
@@ -655,6 +661,8 @@ async function saveCurrentRepoToGit() {
   const name = prompt("Name des neuen Repositories:")
   if (!name) return
 
+
+    isLoading.value = true
   const token = localStorage.getItem("token")
   const githubUsername = localStorage.getItem("github_username")
 
@@ -707,7 +715,10 @@ async function saveCurrentRepoToGit() {
   // 6) Editor-Repo-Dateiliste aktualisieren
   currentRepoFiles.value = editorFiles.map(f => f.path)
 
+    isLoading.value = false
+
   alert("Repository erfolgreich erstellt und Dateien hochgeladen!")
+
 }
 
 

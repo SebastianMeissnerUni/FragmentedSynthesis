@@ -530,7 +530,7 @@ function openRepoInEditor(repo: GitHubRepo) {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 500px;
+  max-width: 1200px;
   max-height: 90vh;
   overflow-y: auto;
   z-index: 1000000;
@@ -553,9 +553,14 @@ input {
   border: 1px solid #ddd;
   border-radius: 4px;
   box-sizing: border-box;
+  text-align: center;
 }
 
-.readonly-input { background-color: #f9f9f9; color: #888; cursor: not-allowed; }
+input::placeholder {
+  text-align: center;
+}
+
+.readonly-input { background-color: #f9f9f9; color: #888; cursor: not-allowed; text-align: center;  }
 
 .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 
