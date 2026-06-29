@@ -28,6 +28,14 @@ function parseBibtex(input: string): BibEntry[] {
   return entries
 }
 
+
+function clearBibliography() {
+  updateBibliography([])
+  console.log("[RefPanel] Bibliography manuell geleert")
+}
+
+
+
 function importBibtex() {
   console.log('[RefPanel] raw input:', rawBibtexInput.value)
 
@@ -88,6 +96,11 @@ function removeReference(key: string) {
     <button class="import-btn" @click="importBibtex">
       Import BibTeX
     </button>
+
+    <button class="bib-clear-btn" @click="clearBibliography">
+      Clear Bibliography
+    </button>
+
   </div>
 </template>
 
@@ -169,5 +182,25 @@ function removeReference(key: string) {
 .template-buttons button:hover {
   background: rgba(0, 0, 0, 0);
 }
+
+.bib-clear-btn {
+  width: 100%;
+  border-radius: 10px;
+  background: rgb(255, 255, 255);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 10px;
+  box-sizing: border-box;
+  color: #000000;
+  padding: 8px 12px;
+  display: block;
+}
+
+.bib-clear-btn:hover {
+  background: rgba(0, 0, 0, 0);
+}
+
+
 
 </style>

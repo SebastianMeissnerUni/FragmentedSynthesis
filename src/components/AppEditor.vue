@@ -282,6 +282,7 @@ async function loadEntireRepo(repo) {
   console.log("[AppEditor] Lade komplettes Repo:", repo)
 
   hardResetEditor()
+  bibliography.value = []
 
   const token = localStorage.getItem("token")
   const res = await fetch(
