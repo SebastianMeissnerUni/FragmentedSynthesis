@@ -304,8 +304,13 @@ watch(bibliography, (newBib) => {
   );
 
   // Alle ungültigen Zitate entfernen
-  console.warn("Invalid citation:", key);
+  invalidCitations.forEach(key => {
+    console.warn("Invalid citation:", key);
+    removeCitation(key);
+  });
+
 }, {deep: true})
+
 
 
 watch(TLDR, (val) => {
