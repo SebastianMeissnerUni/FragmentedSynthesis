@@ -84,6 +84,7 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
       { role: 'user', content: options.user }
     ]
   };
+
   if (options.responseFormat) {
     body.response_format = options.responseFormat;
   }
@@ -91,11 +92,11 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
   };
+
   if (API_KEY) {
     headers.Authorization = `Bearer ${API_KEY}`;
   }
 
-  // Dispatch the request to the LLM backend.
   const resp = await fetch(API_URL, {
     method: 'POST',
     headers,
@@ -104,6 +105,7 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
 
   const raw = await resp.text();
   let parsed: any;
+
   try {
     parsed = raw ? JSON.parse(raw) : undefined;
   } catch {
@@ -114,17 +116,20 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
     const message = parsed?.error?.message || resp.statusText || 'LLM request failed';
     throw new Error(message);
   }
-
+  // Extract JSON summary from Qwen
   const content = parsed?.choices?.[0]?.message?.content;
-  const message = normaliseMessage(content, raw);
+  const summary =
+      typeof content === "object" && content?.summary
+          ? content.summary
+          : content;
 
-  // Give back both the clean string and the raw payload for debugging.
   return {
-    message,
+    message: summary,
     raw,
     response: parsed
   };
 }
+
 
 function normaliseMessage(content: any, fallbackRaw: string): string {
   if (typeof content === 'string') {

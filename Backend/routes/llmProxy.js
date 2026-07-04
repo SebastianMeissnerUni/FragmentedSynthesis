@@ -5,6 +5,7 @@ const router = express.Router();
 router.post("/", async (req, res) => {
     console.log("LLM Request Body:", req.body);
     console.log("LLM API KEY:", process.env.LLM_API_KEY);
+    console.log("LLM Request sent at:", Date.now());
 
 
     try {
@@ -16,6 +17,8 @@ router.post("/", async (req, res) => {
             },
             body: JSON.stringify(req.body)
         });
+        console.log("LLM Response received at:", Date.now());
+
 
         const text = await response.text();
         res.status(response.status).send(text);

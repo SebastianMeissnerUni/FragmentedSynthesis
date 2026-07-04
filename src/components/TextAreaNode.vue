@@ -116,15 +116,8 @@ async function generateSummary() {
     if (token !== requestToken) return
 
     const msg = result.message || ''
-    const parsed = (() => {
-      try {
-        return JSON.parse(msg)
-      } catch {
-        return null
-      }
-    })()
+    summary.value = msg.trim()
 
-    summary.value = parsed?.summary?.trim() ?? msg.trim()
     status.value = "done"
   } catch {
     summary.value = ''
