@@ -70,6 +70,57 @@ const {saveToFile,
 
 
 
+const showTools = ref(false)
+
+const showContent = ref(false)
+
+function spawnNodeFromTemplate(type: string) {
+  const template = availableTemplates.value.find(t => t.type === type)
+  if (!template) {
+    console.warn("Template not found for type:", type)
+    return
+  }
+
+  const center = {
+    x: dimensions.value.width / 2,
+    y: dimensions.value.height / 2
+  }
+
+  const pos = screenToFlowCoordinate(center)
+
+  addNodes([{
+    id: `${type}-${Date.now()}`,
+    type: template.type,
+    position: pos,
+    data: structuredClone(template.data ?? {}),
+    width: template.width,
+    height: template.height,
+    style: structuredClone(template.style ?? {}),
+    class: template.class,
+    draggable: template.draggable,
+    selectable: template.selectable,
+    connectable: template.connectable
+  }])
+}
+
+
+function addParagraph() {
+  spawnNodeFromTemplate('textArea')
+}
+
+function addLatex() {
+  spawnNodeFromTemplate('magicLatex')
+}
+
+function addImage() {
+  spawnNodeFromTemplate('figureNode')
+}
+
+function addTitle() {
+  spawnNodeFromTemplate('compose')
+}
+
+
 function registerChaosClick() {
   if (designMode.value === 'disco') return
 
@@ -170,43 +221,99 @@ onUnmounted(() => {
   <!-- Main Control Interface (Left Side) -->
 
   <Panel position="top-left">
+
+    <div class="topbar">
+
+      <!-- ⭐ Tools-Button mit integriertem Dropdown -->
+      <div class="topbar-item tools-wrapper" @click.self="showTools = !showTools">
+        Tools
+
+        <div v-if="showTools" class="tools-dropdown" @click.stop>
+
+          <!-- Erste Reihe -->
+          <div class="tools-row">
+            <button title="Reload WebApp" @click="reloadApp">🔄</button>
+            <button title="Download" @click="saveToFile">💾</button>
+
+            <label class="upload-label" title="Upload">
+              📂
+              <input accept=".json" type="file" @change="restoreFromFile"/>
+            </label>
+          </div>
+
+          <!-- Zweite Reihe -->
+          <div class="tools-row">
+            <button @click="onDeleteSelected">🗑️</button>
+            <button @click="onAutoLayout">🔮</button>
+            <button @click="createSnapshot">📸</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Restliche Topbar-Buttons -->
+      <div class="topbar-item content-wrapper" @click.self="showContent = !showContent">
+        Content
+
+        <div v-if="showContent" class="content-circle-menu" @click.stop>
+
+          <button class="circle-btn quarter quarter-1" @click="addParagraph">
+            Paragraph
+          </button>
+
+          <button class="circle-btn quarter quarter-2" @click="addLatex">
+            Latex Code
+          </button>
+
+          <button class="circle-btn quarter quarter-3" @click="addImage">
+            Image
+          </button>
+
+          <button class="circle-btn quarter quarter-4" @click="addTitle">
+            Title
+          </button>
+
+        </div>
+      </div>
+
+
+      <div class="topbar-item">LLM</div>
+      <div class="topbar-item">Stickynode</div>
+      <div class="topbar-item" @click="togglePanel('📚 bibliography')">Bibliography</div>
+      <div class="topbar-item" @click="togglePanel('🖼️ figures')">Images</div>
+      <div class="topbar-item" @click="togglePanel('📸 snapshots')">Time machine</div>
+      <div class="topbar-item">Document Output</div>
+      <div class="topbar-item" @click="toggleLanguage">
+        {{ language === 'de' ? 'DE' : 'EN' }}
+      </div>
+
+    </div>
+
+    <!-- Panel Content -->
     <div class="panel-content">
       <label class="sr-only" for="node-type-select">Node type</label>
 
       <!-- First Button Row -->
-
-        <div class="buttons profile-row">
-          <button title="Reload WebApp" @click="reloadApp">
-            🔄
-          </button>
-          <button title="Download (Save project to file)" @click="saveToFile">
-            💾
-          </button>
-          <button class="upload-label" title="Upload (Load project from file)">
-            📂
-            <input accept=".json" type="file" @change="restoreFromFile"/>
-          </button>
+      <div class="buttons profile-row">
+        <button title="Reload WebApp" @click="reloadApp">🔄</button>
+        <button title="Download (Save project to file)" @click="saveToFile">💾</button>
+        <button class="upload-label" title="Upload (Load project from file)">
+          📂
+          <input accept=".json" type="file" @change="restoreFromFile"/>
+        </button>
       </div>
 
       <!-- Second Button Row -->
-
       <div class="buttons">
-        <button
-            title="Delete (Delete all selected nodes or edges. Currently selected nodes appear red in the minimap. Select multiple elements by holding CTRL.)" @click="onDeleteSelected">
-          🗑️
-        </button>
-        <button title="Unchaosify (This will automatically sort your elements according to the flow of the content.)" @click="onAutoLayout">
-          🔮
-        </button>
-        <button title="Snapshot (Save your progress. Restore using the Snapshots-Panel. Autosaves are made once a Minute.)" @click="createSnapshot">
-          📸
-        </button>
+        <button title="Delete selected nodes" @click="onDeleteSelected">🗑️</button>
+        <button title="Unchaosify" @click="onAutoLayout">🔮</button>
+        <button title="Snapshot" @click="createSnapshot">📸</button>
       </div>
 
       <!-- Floating Panel Switches -->
-
       <div class="toggle-switches">
-        <div v-for="panel in ['📚 bibliography','🖼️ figures','✏️ style', '📸 snapshots']" :key="panel"
+        <div v-for="panel in ['📚 bibliography','🖼️ figures','✏️ style', '📸 snapshots']"
+             :key="panel"
              class="toggle-switch">
           <label>
             <input :checked="activeSidebar === panel"
@@ -221,101 +328,68 @@ onUnmounted(() => {
       </div>
 
       <!-- Other Switches -->
-
       <div class="toggle-switch-group">
         <div class="toggle-switch">
           <label>
             <input v-model="TLDR" type="checkbox"/>
             <span class="slider"></span>
           </label>
-          <span
-              class="toggle-label"
-              title="Enable or disable TLDR mode for all Text Input Nodes and Figure Nodes for a better overview.">
-              TLDR-Mode
-          </span>
+          <span class="toggle-label">TLDR-Mode</span>
         </div>
+
         <div class="toggle-switch">
           <label>
-            <input
-                :checked="language === 'de'"
-                type="checkbox"
-                @change="toggleLanguage"
-            />
+            <input :checked="language === 'de'" type="checkbox" @change="toggleLanguage"/>
             <span class="slider flag"></span>
           </label>
-          <span
-              class="toggle-label"
-              title="Switch LLM-prompts between English and German">
-              Language: {{ languageLabel }}
-        </span>
+          <span class="toggle-label">Language: {{ languageLabel }}</span>
         </div>
       </div>
 
       <!-- Draggable Nodes -->
-
       <div class="drag-nodes">
 
         <!-- Content Nodes -->
-        <h4
-            class="drag-category"
-        >
-          Content Nodes
-        </h4>
+        <h4 class="drag-category">Content Nodes</h4>
         <div
             v-for="template in availableTemplates.filter(t => t.category === 'text')"
             :key="template.type"
             class="draggable-node content-node"
             draggable="true"
-            title="Drag and drop nodes you would like to add over to the canvas"
             @dragstart="onDragStart(template.type, $event)"
         >
           {{ template.label }}
         </div>
 
         <!-- LLM Nodes -->
-
-        <h4
-            class="drag-category"
-        >
-          LLM-based Nodes
-        </h4>
+        <h4 class="drag-category">LLM-based Nodes</h4>
         <div
             v-for="template in availableTemplates.filter(t => t.category === 'llm')"
             :key="template.type"
             class="draggable-node llm-node"
             draggable="true"
-            title="Drag and drop nodes you would like to add over to the canvas"
             @dragstart="onDragStart(template.type, $event)"
         >
           {{ template.label }}
         </div>
 
-
-
         <!-- Utility Nodes -->
-
-        <h4
-            class="drag-category"
-        >
-          Utility Nodes
-        </h4>
+        <h4 class="drag-category">Utility Nodes</h4>
         <div
             v-for="template in availableTemplates.filter(t => t.category === 'utility')"
             :key="template.type"
             class="draggable-node utility-node"
             draggable="true"
-            title="Drag and drop nodes you would like to add over to the canvas"
             @dragstart="onDragStart(template.type, $event)"
         >
           {{ template.label }}
         </div>
+
       </div>
     </div>
   </Panel>
 
-
   <!-- Floating Control Panels (Right Side) -->
-
   <Panel v-if="activeSidebar === '📚 bibliography'" position="top-right">
     <div class="side-panel">
       <h4>Reference Tracker</h4>
@@ -343,7 +417,6 @@ onUnmounted(() => {
       <SnapshotsPanelContent/>
     </div>
   </Panel>
-
 
 </template>
 
@@ -591,35 +664,32 @@ onUnmounted(() => {
 }
 
 .upload-label {
-  position: relative;
-  align-items: center;
-  background-color: white;
-  color: black;
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #333;
+  color: white;
+  padding: 10px;
   border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
   cursor: pointer;
-  display: inline-flex;
-  height: 36px;
+  font-size: 1.2rem;
+  text-align: center;
+  display: flex;
   justify-content: center;
-  padding: 0.25rem;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  align-items: center;
+  position: relative;
 }
+
+.upload-label input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 
 .upload-label:hover {
   background-color: rgba(95, 95, 95, 0.08);
   box-shadow: 0 2px 4px rgba(29, 31, 33, 0.12);
 }
 
-.upload-label input {
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: all;
-}
 
 .disco-hotspot {
   position: absolute;
@@ -654,4 +724,144 @@ onUnmounted(() => {
 .buttons.profile-row .profile-btn {
   margin-left: 6px;
 }
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 48px;
+  background: #111;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  align-items: center;
+  text-align: center;
+  border-bottom: 1px solid #333;
+  z-index: 9999;
+}
+
+.topbar-item {
+  color: white;
+  font-weight: 600;
+  padding: 10px 0;
+  cursor: pointer;
+  user-select: none;
+  border-right: 1px solid #333;
+}
+
+.topbar-item:hover {
+  background: #222;
+}
+
+.tools-wrapper {
+  position: relative;
+}
+
+.tools-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: #222;
+  border: 1px solid #444;
+  padding: 8px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+
+
+.tools-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tools-row button,
+.tools-row .upload-label {
+  background: #333;
+  color: white;
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 36px;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.upload-label input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.content-wrapper {
+  position: relative;
+}
+
+.content-circle-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  pointer-events: none; /* Container ist nicht klickbar */
+}
+
+.circle-btn {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  background: #333;
+  color: white;
+  font-weight: 600;
+  border: 2px solid #444;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto; /* Buttons bleiben klickbar */
+  transition: background 0.2s;
+}
+
+/* Viertel 1 (oben links) */
+.quarter-1 {
+  top: 0;
+  left: 0;
+  border-top-left-radius: 100%;
+}
+
+/* Viertel 2 (oben rechts) */
+.quarter-2 {
+  top: 0;
+  right: 0;
+  border-top-right-radius: 100%;
+}
+
+/* Viertel 3 (unten rechts) */
+.quarter-3 {
+  bottom: 0;
+  right: 0;
+  border-bottom-right-radius: 100%;
+}
+
+/* Viertel 4 (unten links) */
+.quarter-4 {
+  bottom: 0;
+  left: 0;
+  border-bottom-left-radius: 100%;
+}
+
 </style>
