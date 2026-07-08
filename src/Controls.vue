@@ -74,6 +74,32 @@ const showTools = ref(false)
 
 const showContent = ref(false)
 
+const circlePos = ref({ x: 300, y: 200 }) // Startposition
+const isDraggingCircle = ref(false)
+let dragOffset = { x: 0, y: 0 }
+
+function startDragCircle(event: MouseEvent) {
+  isDraggingCircle.value = true
+  dragOffset.x = event.clientX - circlePos.value.x
+  dragOffset.y = event.clientY - circlePos.value.y
+}
+
+function stopDragCircle() {
+  isDraggingCircle.value = false
+}
+
+function onDragCircle(event: MouseEvent) {
+  if (!isDraggingCircle.value) return
+  circlePos.value = {
+    x: event.clientX - dragOffset.x,
+    y: event.clientY - dragOffset.y
+  }
+}
+
+window.addEventListener("mousemove", onDragCircle)
+window.addEventListener("mouseup", stopDragCircle)
+
+
 function spawnNodeFromTemplate(type: string) {
   const template = availableTemplates.value.find(t => t.type === type)
   if (!template) {
@@ -119,6 +145,17 @@ function addImage() {
 function addTitle() {
   spawnNodeFromTemplate('compose')
 }
+
+function spawnStickyNode() {
+  spawnNodeFromTemplate('stickyNote')
+}
+
+function spawnDocOutput() {
+  spawnNodeFromTemplate('docOutput')
+}
+
+
+
 
 
 function registerChaosClick() {
@@ -204,12 +241,42 @@ onUnmounted(() => {
   if (discoTimeout) clearTimeout(discoTimeout)
 })
 
+const showLLM = ref(false)
+const activeLLMButton = ref<string | null>(null)
+
+
+const llmPos = ref({ x: 500, y: 200 }) // Startposition
+const isDraggingLLM = ref(false)
+let llmDragOffset = { x: 0, y: 0 }
+
+function startDragLLM(event: MouseEvent) {
+  isDraggingLLM.value = true
+  llmDragOffset.x = event.clientX - llmPos.value.x
+  llmDragOffset.y = event.clientY - llmPos.value.y
+}
+
+function stopDragLLM() {
+  isDraggingLLM.value = false
+}
+
+function onDragLLM(event: MouseEvent) {
+  if (!isDraggingLLM.value) return
+  llmPos.value = {
+    x: event.clientX - llmDragOffset.x,
+    y: event.clientY - llmDragOffset.y
+  }
+}
+
+window.addEventListener("mousemove", onDragLLM)
+window.addEventListener("mouseup", stopDragLLM)
+
 
 </script>
 
 
 <template>
 
+  <!-- LLM Queue Panel -->
   <Panel
       v-if="llmBusy"
       position="bottom-center"
@@ -218,19 +285,16 @@ onUnmounted(() => {
     <LlmQueuePanelContent />
   </Panel>
 
-  <!-- Main Control Interface (Left Side) -->
-
+  <!-- LEFT PANEL: Topbar + Kreismenüs -->
   <Panel position="top-left">
 
     <div class="topbar">
 
-      <!-- ⭐ Tools-Button mit integriertem Dropdown -->
+      <!-- Tools -->
       <div class="topbar-item tools-wrapper" @click.self="showTools = !showTools">
         Tools
 
         <div v-if="showTools" class="tools-dropdown" @click.stop>
-
-          <!-- Erste Reihe -->
           <div class="tools-row">
             <button title="Reload WebApp" @click="reloadApp">🔄</button>
             <button title="Download" @click="saveToFile">💾</button>
@@ -241,155 +305,100 @@ onUnmounted(() => {
             </label>
           </div>
 
-          <!-- Zweite Reihe -->
           <div class="tools-row">
             <button @click="onDeleteSelected">🗑️</button>
             <button @click="onAutoLayout">🔮</button>
             <button @click="createSnapshot">📸</button>
           </div>
-
         </div>
       </div>
 
-      <!-- Restliche Topbar-Buttons -->
-      <div class="topbar-item content-wrapper" @click.self="showContent = !showContent">
+      <!-- Content Button -->
+      <div
+          class="topbar-item content-wrapper"
+          :class="{ active: showContent }"
+          @click.self="showContent = !showContent"
+      >
         Content
-
-        <div v-if="showContent" class="content-circle-menu" @click.stop>
-
-          <button class="circle-btn quarter quarter-1" @click="addParagraph">
-            Paragraph
-          </button>
-
-          <button class="circle-btn quarter quarter-2" @click="addLatex">
-            Latex Code
-          </button>
-
-          <button class="circle-btn quarter quarter-3" @click="addImage">
-            Image
-          </button>
-
-          <button class="circle-btn quarter quarter-4" @click="addTitle">
-            Title
-          </button>
-
-        </div>
       </div>
 
+      <!-- LLM Button -->
+      <div
+          class="topbar-item"
+          :class="{ active: showLLM }"
+          @click.self="showLLM = !showLLM"
+      >
+        LLM
+      </div>
 
-      <div class="topbar-item">LLM</div>
-      <div class="topbar-item">Stickynode</div>
+      <!-- Sticky -->
+      <div class="topbar-item" @click="spawnStickyNode">
+        Stickynode
+      </div>
+
+      <!-- Right Panel Buttons -->
       <div class="topbar-item" @click="togglePanel('📚 bibliography')">Bibliography</div>
       <div class="topbar-item" @click="togglePanel('🖼️ figures')">Images</div>
       <div class="topbar-item" @click="togglePanel('📸 snapshots')">Time machine</div>
-      <div class="topbar-item">Document Output</div>
+
+      <div class="topbar-item" @click="spawnDocOutput">
+        Document Output
+      </div>
+
+      <!-- Language -->
       <div class="topbar-item" @click="toggleLanguage">
         {{ language === 'de' ? 'DE' : 'EN' }}
       </div>
 
     </div>
 
-    <!-- Panel Content -->
-    <div class="panel-content">
-      <label class="sr-only" for="node-type-select">Node type</label>
+    <!-- Content Circle Menu -->
+    <div
+        v-if="showContent"
+        class="content-circle-menu"
+        :style="{ left: circlePos.x + 'px', top: circlePos.y + 'px' }"
+    >
+      <div class="circle-drag-handle" @mousedown="startDragCircle"></div>
 
-      <!-- First Button Row -->
-      <div class="buttons profile-row">
-        <button title="Reload WebApp" @click="reloadApp">🔄</button>
-        <button title="Download (Save project to file)" @click="saveToFile">💾</button>
-        <button class="upload-label" title="Upload (Load project from file)">
-          📂
-          <input accept=".json" type="file" @change="restoreFromFile"/>
-        </button>
-      </div>
-
-      <!-- Second Button Row -->
-      <div class="buttons">
-        <button title="Delete selected nodes" @click="onDeleteSelected">🗑️</button>
-        <button title="Unchaosify" @click="onAutoLayout">🔮</button>
-        <button title="Snapshot" @click="createSnapshot">📸</button>
-      </div>
-
-      <!-- Floating Panel Switches -->
-      <div class="toggle-switches">
-        <div v-for="panel in ['📚 bibliography','🖼️ figures','✏️ style', '📸 snapshots']"
-             :key="panel"
-             class="toggle-switch">
-          <label>
-            <input :checked="activeSidebar === panel"
-                   type="checkbox"
-                   @change="() => togglePanel(panel as '📚 bibliography' | '🖼️ figures' | '✏️ style' | '📸 snapshots')"/>
-            <span class="slider purple"></span>
-          </label>
-          <span class="toggle-label">
-            {{ panel.charAt(0).toUpperCase() + panel.slice(1) }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Other Switches -->
-      <div class="toggle-switch-group">
-        <div class="toggle-switch">
-          <label>
-            <input v-model="TLDR" type="checkbox"/>
-            <span class="slider"></span>
-          </label>
-          <span class="toggle-label">TLDR-Mode</span>
-        </div>
-
-        <div class="toggle-switch">
-          <label>
-            <input :checked="language === 'de'" type="checkbox" @change="toggleLanguage"/>
-            <span class="slider flag"></span>
-          </label>
-          <span class="toggle-label">Language: {{ languageLabel }}</span>
-        </div>
-      </div>
-
-      <!-- Draggable Nodes -->
-      <div class="drag-nodes">
-
-        <!-- Content Nodes -->
-        <h4 class="drag-category">Content Nodes</h4>
-        <div
-            v-for="template in availableTemplates.filter(t => t.category === 'text')"
-            :key="template.type"
-            class="draggable-node content-node"
-            draggable="true"
-            @dragstart="onDragStart(template.type, $event)"
-        >
-          {{ template.label }}
-        </div>
-
-        <!-- LLM Nodes -->
-        <h4 class="drag-category">LLM-based Nodes</h4>
-        <div
-            v-for="template in availableTemplates.filter(t => t.category === 'llm')"
-            :key="template.type"
-            class="draggable-node llm-node"
-            draggable="true"
-            @dragstart="onDragStart(template.type, $event)"
-        >
-          {{ template.label }}
-        </div>
-
-        <!-- Utility Nodes -->
-        <h4 class="drag-category">Utility Nodes</h4>
-        <div
-            v-for="template in availableTemplates.filter(t => t.category === 'utility')"
-            :key="template.type"
-            class="draggable-node utility-node"
-            draggable="true"
-            @dragstart="onDragStart(template.type, $event)"
-        >
-          {{ template.label }}
-        </div>
-
-      </div>
+      <button class="circle-btn quarter quarter-1" @click="addParagraph">Paragraph</button>
+      <button class="circle-btn quarter quarter-2" @click="addLatex">Latex Code</button>
+      <button class="circle-btn quarter quarter-3" @click="addImage">Image</button>
+      <button class="circle-btn quarter quarter-4" @click="addTitle">Title</button>
     </div>
+
+    <!-- LLM Circle Menu -->
+    <div
+        v-if="showLLM"
+        class="llm-circle-menu"
+        :style="{ left: llmPos.x + 'px', top: llmPos.y + 'px' }"
+    >
+      <div class="circle-drag-handle" @mousedown="startDragLLM"></div>
+
+      <button class="circle-btn quarter quarter-1" @click="spawnNodeFromTemplate('edit')">Edit</button>
+      <button class="circle-btn quarter quarter-2" @click="spawnNodeFromTemplate('paraphrase')">Paraphrase</button>
+      <button class="circle-btn quarter quarter-3" @click="spawnNodeFromTemplate('grammar')">Grammar</button>
+      <button class="circle-btn quarter quarter-4" @click="togglePanel('✏️ style')">AI Settings</button>
+
+      <button
+          class="circle-btn center-circle"
+          :class="{ active: activeLLMButton === 'tldr' }"
+          @click="
+            activeLLMButton === 'tldr'
+              ? activeLLMButton = null
+              : activeLLMButton = 'tldr';
+            TLDR = !TLDR
+          "
+      >
+        TLDR
+      </button>
+    </div>
+
+    <!-- Minimal Panel Content (wichtig für Login + Layout) -->
+    <div class="panel-content" style="min-height: 40px;"></div>
+
   </Panel>
 
-  <!-- Floating Control Panels (Right Side) -->
+  <!-- RIGHT PANELS -->
   <Panel v-if="activeSidebar === '📚 bibliography'" position="top-right">
     <div class="side-panel">
       <h4>Reference Tracker</h4>
@@ -419,6 +428,7 @@ onUnmounted(() => {
   </Panel>
 
 </template>
+
 
 
 <style scoped>
@@ -761,7 +771,7 @@ onUnmounted(() => {
   position: absolute;
   top: 100%;
   left: 0;
-  width: 100%;
+  width: 91%;
   background: #222;
   border: 1px solid #444;
   padding: 8px;
@@ -810,15 +820,27 @@ onUnmounted(() => {
 
 .content-circle-menu {
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(10px);
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  pointer-events: none; /* Container ist nicht klickbar */
+  pointer-events: none; /* Container nicht klickbar */
+  z-index: 9999;
 }
 
+/* Griff zum Ziehen */
+.circle-drag-handle {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  border: 10px solid #666;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+/* Viertel-Buttons */
 .circle-btn {
   position: absolute;
   width: 50%;
@@ -832,36 +854,127 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  pointer-events: auto; /* Buttons bleiben klickbar */
+  pointer-events: auto; /* Buttons klickbar */
   transition: background 0.2s;
 }
 
-/* Viertel 1 (oben links) */
-.quarter-1 {
-  top: 0;
-  left: 0;
-  border-top-left-radius: 100%;
+/* Viertel */
+.quarter-1 { top: 0; left: 0; border-top-left-radius: 100%; }
+.quarter-2 { top: 0; right: 0; border-top-right-radius: 100%; }
+.quarter-3 { bottom: 0; right: 0; border-bottom-right-radius: 100%; }
+.quarter-4 { bottom: 0; left: 0; border-bottom-left-radius: 100%; }
+
+.topbar-item.active {
+  background-color: blue;     /* dunkler Hintergrund */
+  color: white;               /* Textfarbe */
+  border-radius: 6px;         /* optional */
+  box-shadow: 0 0 6px #888;   /* optional Glow */
 }
 
-/* Viertel 2 (oben rechts) */
-.quarter-2 {
-  top: 0;
-  right: 0;
-  border-top-right-radius: 100%;
+.llm-circle-menu {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
 }
 
-/* Viertel 3 (unten rechts) */
-.quarter-3 {
-  bottom: 0;
-  right: 0;
-  border-bottom-right-radius: 100%;
+/* Griff */
+.llm-circle-menu .circle-drag-handle {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  border: 10px solid #666;
+  pointer-events: auto;
+  cursor: grab;
 }
 
-/* Viertel 4 (unten links) */
-.quarter-4 {
-  bottom: 0;
-  left: 0;
-  border-bottom-left-radius: 100%;
+/* Viertel-Buttons */
+.llm-circle-menu .circle-btn {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  background: #333;
+  color: white;
+  font-weight: 600;
+  border: 2px solid #444;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+  transition: background 0.2s;
 }
+
+/* Viertel */
+.quarter-1 { top: 0; left: 0; border-top-left-radius: 100%; }
+.quarter-2 { top: 0; right: 0; border-top-right-radius: 100%; }
+.quarter-3 { bottom: 0; right: 0; border-bottom-right-radius: 100%; }
+.quarter-4 { bottom: 0; left: 0; border-bottom-left-radius: 100%; }
+
+/* Mittlerer Kreis */
+.center-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #555;
+  border: 3px solid #777;
+  font-size: 18px;
+  pointer-events: auto;
+}
+
+.circle-btn.active {
+  background-color: darkred;
+  border-color: #aaa;
+  box-shadow: 0 0 10px #999;
+}
+.llm-circle-menu .circle-btn:hover {
+  background-color: blue;
+  border-color: #aaa;
+  box-shadow: 0 0 10px #999;
+}
+.llm-circle-menu .center-circle {
+  width: 90px;
+  height: 90px;
+}
+
+@keyframes pulse-tldr {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 0 6px blue;
+    background-color: blue;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.18);
+    box-shadow: 0 0 18px blue;
+    background-color: blue;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 0 6px blue;
+    background-color: blue;
+  }
+}
+
+
+.center-circle.active {
+  animation: pulse-tldr 1.4s infinite ease-in-out;
+  border-color: blue;
+}
+
+.vue-flow__panel.top.left {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 
 </style>

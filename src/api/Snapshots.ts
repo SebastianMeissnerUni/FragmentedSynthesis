@@ -17,8 +17,12 @@ export function useSnapshots() {
 
     async function createSnapshot() {
         snapshotInProgress.value = true
+
         await nextTick()
         await new Promise(r => requestAnimationFrame(r))
+
+        // NEU: kurze Pause, damit VueFlow stabil ist
+        await new Promise(r => setTimeout(r, 50))
 
         const exportData = {
             nodes: JSON.parse(JSON.stringify(nodes.value)),
@@ -35,6 +39,7 @@ export function useSnapshots() {
         })
 
         let screenshot: string | undefined
+
         try {
             const flowEl = document.querySelector('.vue-flow') as HTMLElement
             if (flowEl) {
@@ -45,7 +50,6 @@ export function useSnapshots() {
             console.warn('Snapshot screenshot failed', err)
         }
 
-        await new Promise(r => setTimeout(r, 120))
         snapshotInProgress.value = false
 
         snapshots.value.unshift({
@@ -56,6 +60,7 @@ export function useSnapshots() {
             screenshot,
         })
     }
+
 
 
     function restoreSnapshot(id: string) {
@@ -96,6 +101,11 @@ export function useSnapshots() {
     async function createAutosaveSnapshot() {
         const MAX_AUTOSAVES = 20
 
+        // WICHTIG: Canvas stabilisieren
+        await nextTick()
+        await new Promise(r => requestAnimationFrame(r))
+        await new Promise(r => setTimeout(r, 50)) // kleine Pause reicht
+
         const exportData = {
             nodes: JSON.parse(JSON.stringify(nodes.value)),
             edges: JSON.parse(JSON.stringify(edges.value)),
@@ -111,13 +121,16 @@ export function useSnapshots() {
         })
 
         let screenshot: string | undefined
+
         try {
             const flowEl = document.querySelector('.vue-flow') as HTMLElement
             if (flowEl) {
                 const canvas = await html2canvas(flowEl)
                 screenshot = canvas.toDataURL('image/png')
             }
-        } catch {}
+        } catch (err) {
+            console.warn("Autosave screenshot failed", err)
+        }
 
         snapshots.value.unshift({
             id: crypto.randomUUID(),
@@ -131,13 +144,15 @@ export function useSnapshots() {
         const autosaves = snapshots.value.filter(s => s.isAutoSave)
         if (autosaves.length > MAX_AUTOSAVES) {
             snapshots.value = snapshots.value.filter(
-                s => !autosaves
-                    .sort((a, b) => a.createdAt - b.createdAt)
-                    .slice(0, autosaves.length - MAX_AUTOSAVES)
-                    .some(r => r.id === s.id)
+                s =>
+                    !autosaves
+                        .sort((a, b) => a.createdAt - b.createdAt)
+                        .slice(0, autosaves.length - MAX_AUTOSAVES)
+                        .some(r => r.id === s.id)
             )
         }
     }
+
 
     return {
         createSnapshot,
