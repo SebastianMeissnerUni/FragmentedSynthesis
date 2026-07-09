@@ -525,7 +525,7 @@ function openRepoInEditor(repo: GitHubRepo) {
 
 /* BOX */
 .profile-box {
-  background: white;
+  background: #EDE0D1;
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -541,32 +541,36 @@ function openRepoInEditor(repo: GitHubRepo) {
   width: 100%;
 }
 
-h2, h3 { color: #333; margin-bottom: 20px; }
+h2, h3 { color: #2E2523; margin-bottom: 20px; }
 
 .info-group, .input-group { margin-bottom: 15px; }
 
-label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #666; }
+label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #2E2523; }
 
 input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid #2E2523;   /* passend zu deinem Theme */
   border-radius: 4px;
   box-sizing: border-box;
   text-align: center;
+
+  background: #CDB49A;         /* neue Hintergrundfarbe */
+  color: #2B1E18;              /* neue Schriftfarbe */
 }
 
 input::placeholder {
   text-align: center;
+  color: #2E2523;
 }
 
-.readonly-input { background-color: #f9f9f9; color: #888; cursor: not-allowed; text-align: center;  }
+.readonly-input { background-color: #CDB49A; color: #2B1E18; cursor: not-allowed; text-align: center;  }
 
 .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 
 .save-btn {
-  background-color: #4a90e2;
-  color: white;
+  background-color: #6E4B35;
+  color: #EDE0D1;
   border: none;
   padding: 12px;
   border-radius: 4px;
@@ -596,7 +600,7 @@ input::placeholder {
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #A67C5B;
 }
 
 .project-info {

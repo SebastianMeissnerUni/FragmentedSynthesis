@@ -45,7 +45,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="profile-wrapper" ref="wrapper">
     <button class="profile-btn" @click.stop="toggleMenu">
-      <span class="profile-icon">👤</span>
+      <span class="profile-icon">🏠</span>
     </button>
 
     <div v-if="open" class="dropdown">
@@ -60,12 +60,13 @@ onBeforeUnmount(() => {
   position: relative;
   display: inline-block;
   z-index: 5000;
+  margin-top: 50px;
 }
 
 /* Button mit hellgrauem Kasten */
 .profile-btn {
-  background: #f2f2f2;
-  border: 1px solid #d0d0d0;
+  background: #99683A;
+  border: 1px solid #4A2D11;
   border-radius: 8px;
   padding: 6px 8px;
   cursor: pointer;
@@ -83,14 +84,14 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 40px;
   right: 0;
-  background: white;
-  border: 1px solid #d0d0d0;
+  background: #FCB465;
+  border: 1px solid #CF9151;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   display: flex;
   flex-direction: column;
   min-width: 120px;
-  z-index: 99999;
+  z-index: 999999;
 }
 
 .dropdown button {
@@ -99,9 +100,10 @@ onBeforeUnmount(() => {
   padding: 10px;
   text-align: left;
   cursor: pointer;
+  color: black;
 }
 
 .dropdown button:hover {
-  background: #f5f5f5;
+  background: #F7D6BA;
 }
 </style>

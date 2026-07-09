@@ -98,34 +98,38 @@ function startDemo() {
 <style scoped>
 .upload-wrapper {
   position: relative;
-  z-index: 2000;
-  pointer-events: auto;
+  display: inline-block;
+  z-index: 5000;
 }
 
 .upload-btn {
-  background: white;
-  border: 2px solid #ccc;
-  border-radius: 50%;
-  width: 42px;
-  height: 42px;
+  background: #99683A;
+  border: 1px solid #4A2D11;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  padding: 6px 8px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
   font-size: 20px;
-  position: relative;
-  z-index: 9000;
 }
+
 
 .dropdown {
   position: absolute;
-  top: 50px;
+  top: 40px;
   right: 0;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 8px;
+  background: #FCB465;
+  border: 1px solid #CF9151;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  z-index: 2500;
+  min-width: 120px;
+  z-index: 999999;
 }
 
 .file-option {
@@ -133,9 +137,35 @@ function startDemo() {
   flex-direction: column;
   font-size: 14px;
   cursor: pointer;
+  color: black;
 }
 
 .file-option input {
   margin-top: 4px;
 }
+
+.dropdown button {
+  background: #CF9151;      /* gleiche Farbe wie Upload-Button */
+  color: black;             /* Schriftfarbe */
+  border: 1px solid #4A2D11;
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dropdown button:hover {
+  background: #b07a4a;      /* Hover-Farbe */
+  color: white;
+}
+
+.file-option input {
+  background: #99683A;      /* Hintergrund */
+  color: white;             /* Schriftfarbe */
+  border: 1px solid #4A2D11;
+  border-radius: 6px;
+  padding: 6px;
+}
+
+
 </style>

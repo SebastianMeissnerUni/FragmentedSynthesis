@@ -154,10 +154,6 @@ function spawnDocOutput() {
   spawnNodeFromTemplate('docOutput')
 }
 
-
-
-
-
 function registerChaosClick() {
   if (designMode.value === 'disco') return
 
@@ -291,12 +287,16 @@ window.addEventListener("mouseup", stopDragLLM)
     <div class="topbar">
 
       <!-- Tools -->
-      <div class="topbar-item tools-wrapper" @click.self="showTools = !showTools">
+      <div
+          class="topbar-item tools-wrapper"
+          :class="{ active: showTools }"
+          @click.self="showTools = !showTools"
+      >
         Tools
 
         <div v-if="showTools" class="tools-dropdown" @click.stop>
           <div class="tools-row">
-            <button title="Reload WebApp" @click="reloadApp">🔄</button>
+            <button title="Reload WebApp" @click="reloadApp">⭯</button>
             <button title="Download" @click="saveToFile">💾</button>
 
             <label class="upload-label" title="Upload">
@@ -308,7 +308,7 @@ window.addEventListener("mouseup", stopDragLLM)
           <div class="tools-row">
             <button @click="onDeleteSelected">🗑️</button>
             <button @click="onAutoLayout">🔮</button>
-            <button @click="createSnapshot">📸</button>
+            <button @click="createSnapshot">🕙</button>
           </div>
         </div>
       </div>
@@ -337,9 +337,30 @@ window.addEventListener("mouseup", stopDragLLM)
       </div>
 
       <!-- Right Panel Buttons -->
-      <div class="topbar-item" @click="togglePanel('📚 bibliography')">Bibliography</div>
-      <div class="topbar-item" @click="togglePanel('🖼️ figures')">Images</div>
-      <div class="topbar-item" @click="togglePanel('📸 snapshots')">Time machine</div>
+      <div
+          class="topbar-item"
+          :class="{ active: activeSidebar === '📚 bibliography' }"
+          @click="togglePanel('📚 bibliography')"
+      >
+        Bibliography
+      </div>
+
+      <div
+          class="topbar-item"
+          :class="{ active: activeSidebar === '🖼️ figures' }"
+          @click="togglePanel('🖼️ figures')"
+      >
+        Images
+      </div>
+
+      <div
+          class="topbar-item"
+          :class="{ active: activeSidebar === '📸 snapshots' }"
+          @click="togglePanel('📸 snapshots')"
+      >
+        Time machine
+      </div>
+
 
       <div class="topbar-item" @click="spawnDocOutput">
         Document Output
@@ -632,8 +653,10 @@ window.addEventListener("mouseup", stopDragLLM)
   overflow-y: auto;
   padding: 1rem;
   border-radius: 12px;
-  color: white;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  color: #F7D6BA;
+  box-shadow: 0 4px 20px #401117;
+  background-color: #99683A;
+
 }
 
 /* Nur TLDR-Slider (ohne zusätzliche Klassen) wird grün */
@@ -741,7 +764,7 @@ window.addEventListener("mouseup", stopDragLLM)
   left: 0;
   width: 100%;
   height: 48px;
-  background: #111;
+  background: #99683A;
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   align-items: center;
@@ -751,7 +774,7 @@ window.addEventListener("mouseup", stopDragLLM)
 }
 
 .topbar-item {
-  color: white;
+  color: #F7D6BA;
   font-weight: 600;
   padding: 10px 0;
   cursor: pointer;
@@ -760,7 +783,7 @@ window.addEventListener("mouseup", stopDragLLM)
 }
 
 .topbar-item:hover {
-  background: #222;
+  background: #4A2D11;
 }
 
 .tools-wrapper {
@@ -772,7 +795,7 @@ window.addEventListener("mouseup", stopDragLLM)
   top: 100%;
   left: 0;
   width: 91%;
-  background: #222;
+  background: #4A2D11;
   border: 1px solid #444;
   padding: 8px;
   z-index: 9999;
@@ -791,7 +814,7 @@ window.addEventListener("mouseup", stopDragLLM)
 
 .tools-row button,
 .tools-row .upload-label {
-  background: #333;
+  background: #99683A;
   color: white;
   padding: 6px;
   border-radius: 4px;
@@ -835,7 +858,7 @@ window.addEventListener("mouseup", stopDragLLM)
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  border: 10px solid #666;
+  border: 10px solid #4A2D11;
   pointer-events: auto;
   cursor: grab;
 }
@@ -845,8 +868,8 @@ window.addEventListener("mouseup", stopDragLLM)
   position: absolute;
   width: 50%;
   height: 50%;
-  background: #333;
-  color: white;
+  background: #99683A;
+  color: #F7D6BA;
   font-weight: 600;
   border: 2px solid #444;
   box-sizing: border-box;
@@ -865,7 +888,7 @@ window.addEventListener("mouseup", stopDragLLM)
 .quarter-4 { bottom: 0; left: 0; border-bottom-left-radius: 100%; }
 
 .topbar-item.active {
-  background-color: blue;     /* dunkler Hintergrund */
+  background-color: #4A2D11;     /* dunkler Hintergrund */
   color: white;               /* Textfarbe */
   border-radius: 6px;         /* optional */
   box-shadow: 0 0 6px #888;   /* optional Glow */
@@ -888,7 +911,7 @@ window.addEventListener("mouseup", stopDragLLM)
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  border: 10px solid #666;
+  border: 10px solid #4A2D11;
   pointer-events: auto;
   cursor: grab;
 }
@@ -898,8 +921,8 @@ window.addEventListener("mouseup", stopDragLLM)
   position: absolute;
   width: 50%;
   height: 50%;
-  background: #333;
-  color: white;
+  background: #99683A;
+  color: #F7D6BA;
   font-weight: 600;
   border: 2px solid #444;
   box-sizing: border-box;
@@ -938,7 +961,7 @@ window.addEventListener("mouseup", stopDragLLM)
   box-shadow: 0 0 10px #999;
 }
 .llm-circle-menu .circle-btn:hover {
-  background-color: blue;
+  background-color: #401117;
   border-color: #aaa;
   box-shadow: 0 0 10px #999;
 }
@@ -950,30 +973,50 @@ window.addEventListener("mouseup", stopDragLLM)
 @keyframes pulse-tldr {
   0% {
     transform: translate(-50%, -50%) scale(1);
-    box-shadow: 0 0 6px blue;
-    background-color: blue;
+    box-shadow: 0 0 6px #401117;
+    background-color: #401117;
   }
   50% {
     transform: translate(-50%, -50%) scale(1.18);
-    box-shadow: 0 0 18px blue;
-    background-color: blue;
+    box-shadow: 0 0 18px #401117;
+    background-color: #401117;
   }
   100% {
     transform: translate(-50%, -50%) scale(1);
-    box-shadow: 0 0 6px blue;
-    background-color: blue;
+    box-shadow: 0 0 6px #401117;
+    background-color: #401117;
   }
 }
 
 
 .center-circle.active {
   animation: pulse-tldr 1.4s infinite ease-in-out;
-  border-color: blue;
+  border-color: #F7D6BA;
 }
 
 .vue-flow__panel.top.left {
   background: transparent !important;
   box-shadow: none !important;
+}
+
+.topbar-item.active {
+  background-color: #4A2D11;
+  color: #F7D6BA;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.circle-btn:hover {
+  background-color: #401117;
+  border-color: #aaa;
+  box-shadow: 0 0 10px #999;
+}
+
+.tools-dropdown button:hover {
+  background-color: #401117 !important;
+  color: white !important;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 

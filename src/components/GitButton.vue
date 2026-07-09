@@ -33,28 +33,35 @@ function emitGitAction(action: string) {
   display: inline-block;
 }
 
+
 .git-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: white;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  font-size: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;   /* <-- gleiche Rundung wie Profil */
+    background: #99683A;
+    border: 1px solid #4A2D11;
+    padding: 6px 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white; /* optional */
 }
+
+
 
 .git-dropdown {
   position: absolute;
   top: 50px;
   right: 0;
-  background: white;
-  border: 1px solid #ddd;
+  background: #FCB465;
+  border: 1px solid #CF9151;
   border-radius: 12px;
   padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 99999;
+  z-index: 999999;
   width: 220px;
 }
 
@@ -62,13 +69,13 @@ function emitGitAction(action: string) {
   width: 100%;
   padding: 8px 12px;
   border: none;
-  background: #f8f8f8;
+  background: #CF9151;
   border-radius: 8px;
   text-align: left;
   cursor: pointer;
 }
 
 .git-dropdown button:hover {
-  background: #eaeaea;
+  background: #F7D6BA;
 }
 </style>

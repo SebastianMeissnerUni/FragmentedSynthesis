@@ -5,8 +5,7 @@
   --doc-node-padding: 12px;
   --doc-node-row-gap: 6px;
   --doc-node-min-width: 220px;
-
-  background-color: #ffffff;
+  background-color: #FCB465;
   border: 1px solid rgba(32, 44, 71, 0.12);
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
@@ -18,8 +17,8 @@
 }
 
 .doc-node__header {
-  background-color: rgba(99, 102, 241, 0.1);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background-color: #CF9151;
+  border-bottom: 1px solid #C29A72;
   display: flex;
   flex-direction: column;
   gap: 2px;
