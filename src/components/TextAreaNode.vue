@@ -282,7 +282,9 @@ onBeforeUnmount(() => {
 
 // --- Watchers ---
 watch(isCompact, v => {
-  if (v) generateSummary()
+  if (v && props.type !== "figure" && props.data?.value?.trim()) {
+    generateSummary()
+  }
 })
 
 watch(isCompact, v => {

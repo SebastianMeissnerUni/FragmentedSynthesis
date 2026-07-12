@@ -81,8 +81,16 @@ const availableSources = computed(() => bibliography.value)
 const TLDR = inject('TLDR')
 const isCompact = ref(false)
 watch(TLDR, (val) => {
-  if (typeof val === 'boolean') isCompact.value = val
+  // FigureNodes ignorieren TLDR komplett
+  if (
+      typeof val === "boolean" &&
+      typeof props.data?.value === "string" &&
+      props.data.value.trim().length > 0
+  ) {
+    isCompact.value = val
+  }
 })
+
 
 // Lokale Reactive States
 const searchQuery = ref('')
@@ -378,12 +386,6 @@ const outputValue = computed(() => ({
       >
         📚
       </button>
-
-      <label class="mini-toggle-switch" title="Compact view / TLDR">
-        <input type="checkbox" v-model="isCompact"/>
-        <span class="slider"></span>
-      </label>
-      <span class="mini-toggle-label">TLDR</span>
     </div>
   </NodeToolbar>
 
