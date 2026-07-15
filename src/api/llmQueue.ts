@@ -52,15 +52,16 @@ export function enqueueLlmJob(options: LlmJobOptions): Promise<LlmResult> {
 async function processQueue() {
   if (busy) return;
   busy = true;
-  llmBusy.value = true
+  llmBusy.value = true;
+
   try {
-    while (queue.length) {
-      llmQueueSize.value = queue.length
+    while (queue.length > 0) {
+      llmQueueSize.value = queue.length;
+
       const job = queue.shift()!;
-      // Let callers update their UI the moment we start.
       job.options.onStart?.();
+
       try {
-        // Run the outbound request and deliver the result to the caller.
         const result = await runJob(job.options);
         job.resolve(result);
       } catch (err) {
@@ -70,10 +71,16 @@ async function processQueue() {
     }
   } finally {
     busy = false;
-    llmBusy.value = false
-    llmQueueSize.value = 0
+    llmBusy.value = false;
+    llmQueueSize.value = 0;
+
+    // Falls während der Verarbeitung neue Jobs hinzugekommen sind:
+    if (queue.length > 0) {
+      processQueue(); // aber nur EINMAL, nicht rekursiv während busy=true
+    }
   }
 }
+
 
 async function runJob(options: LlmJobOptions): Promise<LlmResult> {
   const body: Record<string, unknown> = {
@@ -103,7 +110,15 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
     body: JSON.stringify(body)
   });
 
+// LOGS HIER EINBAUEN
+  console.log("LLM STATUS:", resp.status);
+  console.log("LLM HEADERS:", [...resp.headers.entries()]);
+
   const raw = await resp.text();
+
+// LOG RAW RESPONSE
+  console.log("LLM RAW RESPONSE:", raw);
+
   let parsed: any;
 
   try {
@@ -111,6 +126,10 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
   } catch {
     parsed = undefined;
   }
+
+// LOG PARSED RESPONSE
+  console.log("LLM PARSED RESPONSE:", parsed);
+
 
   if (!resp.ok) {
     const message = parsed?.error?.message || resp.statusText || 'LLM request failed';
@@ -128,6 +147,7 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
     raw,
     response: parsed
   };
+
 }
 
 

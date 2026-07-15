@@ -30,8 +30,10 @@ function emitGitAction(action: string) {
 <style scoped>
 .git-button-wrapper {
   position: relative;
-  display: inline-block;
+  display: block;
+  pointer-events: auto;
 }
+
 
 
 .git-icon {
@@ -46,14 +48,18 @@ function emitGitAction(action: string) {
     align-items: center;
     justify-content: center;
     color: white; /* optional */
+    position: fixed;
+    top: 160px;     /* Abstand nach unten */
+    right: 10px;  /* Abstand vom rechten Rand */
+    pointer-events: auto;
 }
 
 
 
 .git-dropdown {
-  position: absolute;
-  top: 50px;
-  right: 0;
+  position: fixed;
+  top: 200px;    /* unter dem Button */
+  right: 10px;  /* gleiche Position wie der Button */
   background: #FCB465;
   border: 1px solid #CF9151;
   border-radius: 12px;
@@ -64,6 +70,7 @@ function emitGitAction(action: string) {
   z-index: 999999;
   width: 220px;
 }
+
 
 .git-dropdown button {
   width: 100%;

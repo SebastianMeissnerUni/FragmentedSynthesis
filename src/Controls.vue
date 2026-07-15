@@ -281,7 +281,7 @@ window.addEventListener("mouseup", stopDragLLM)
     <LlmQueuePanelContent />
   </Panel>
 
-  <!-- LEFT PANEL: Topbar + Kreismenüs -->
+  <!-- LEFT PANEL: Topbar + Dropdowns -->
   <Panel position="top-left">
 
     <div class="topbar">
@@ -320,15 +320,43 @@ window.addEventListener("mouseup", stopDragLLM)
           @click.self="showContent = !showContent"
       >
         Content
+
+        <!-- Content Dropdown INSIDE the button -->
+        <div v-if="showContent" class="dropdown content-dropdown" @click.stop>
+          <button @click="addParagraph">Paragraph</button>
+          <button @click="addLatex">Latex Code</button>
+          <button @click="addImage">Image</button>
+          <button @click="addTitle">Title</button>
+        </div>
       </div>
 
       <!-- LLM Button -->
       <div
-          class="topbar-item"
+          class="topbar-item llm-wrapper"
           :class="{ active: showLLM }"
           @click.self="showLLM = !showLLM"
       >
         LLM
+
+        <!-- LLM Dropdown INSIDE the button -->
+        <div v-if="showLLM" class="dropdown llm-dropdown" @click.stop>
+          <button @click="spawnNodeFromTemplate('edit')">Edit</button>
+          <button @click="spawnNodeFromTemplate('paraphrase')">Paraphrase</button>
+          <button @click="spawnNodeFromTemplate('grammar')">Grammar</button>
+          <button @click="togglePanel('✏️ style')">AI Settings</button>
+
+          <button
+              :class="{ active: activeLLMButton === 'tldr' }"
+              @click="
+                activeLLMButton === 'tldr'
+                  ? activeLLMButton = null
+                  : activeLLMButton = 'tldr';
+                TLDR = !TLDR
+              "
+          >
+            TLDR
+          </button>
+        </div>
       </div>
 
       <!-- Sticky -->
@@ -361,7 +389,6 @@ window.addEventListener("mouseup", stopDragLLM)
         Time machine
       </div>
 
-
       <div class="topbar-item" @click="spawnDocOutput">
         Document Output
       </div>
@@ -373,48 +400,7 @@ window.addEventListener("mouseup", stopDragLLM)
 
     </div>
 
-    <!-- Content Circle Menu -->
-    <div
-        v-if="showContent"
-        class="content-circle-menu"
-        :style="{ left: circlePos.x + 'px', top: circlePos.y + 'px' }"
-    >
-      <div class="circle-drag-handle" @mousedown="startDragCircle"></div>
-
-      <button class="circle-btn quarter quarter-1" @click="addParagraph">Paragraph</button>
-      <button class="circle-btn quarter quarter-2" @click="addLatex">Latex Code</button>
-      <button class="circle-btn quarter quarter-3" @click="addImage">Image</button>
-      <button class="circle-btn quarter quarter-4" @click="addTitle">Title</button>
-    </div>
-
-    <!-- LLM Circle Menu -->
-    <div
-        v-if="showLLM"
-        class="llm-circle-menu"
-        :style="{ left: llmPos.x + 'px', top: llmPos.y + 'px' }"
-    >
-      <div class="circle-drag-handle" @mousedown="startDragLLM"></div>
-
-      <button class="circle-btn quarter quarter-1" @click="spawnNodeFromTemplate('edit')">Edit</button>
-      <button class="circle-btn quarter quarter-2" @click="spawnNodeFromTemplate('paraphrase')">Paraphrase</button>
-      <button class="circle-btn quarter quarter-3" @click="spawnNodeFromTemplate('grammar')">Grammar</button>
-      <button class="circle-btn quarter quarter-4" @click="togglePanel('✏️ style')">AI Settings</button>
-
-      <button
-          class="circle-btn center-circle"
-          :class="{ active: activeLLMButton === 'tldr' }"
-          @click="
-            activeLLMButton === 'tldr'
-              ? activeLLMButton = null
-              : activeLLMButton = 'tldr';
-            TLDR = !TLDR
-          "
-      >
-        TLDR
-      </button>
-    </div>
-
-    <!-- Minimal Panel Content (wichtig für Login + Layout) -->
+    <!-- Minimal Panel Content -->
     <div class="panel-content" style="min-height: 40px;"></div>
 
   </Panel>
@@ -452,19 +438,12 @@ window.addEventListener("mouseup", stopDragLLM)
 
 
 
+
 <style scoped>
 .panel-content {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-}
-
-.buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 36px);
-  grid-auto-rows: 36px;
-  gap: 0.5rem;
-  justify-content: center;
 }
 
 .buttons button {
@@ -493,95 +472,6 @@ window.addEventListener("mouseup", stopDragLLM)
   width: 18px;
 }
 
-.sr-only {
-  border: 0;
-  clip: rect(0 0 0 0);
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  padding: 0;
-  position: absolute;
-  width: 1px;
-}
-
-
-
-.drag-nodes {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 4px 0;
-  margin-top: 8px;
-  align-items: center;
-}
-
-.draggable-node {
-  padding: 6px 8px;
-  background: #f7f7f7;
-  border: 1px solid rgba(15, 23, 42, .15);
-  border-radius: 4px;
-  cursor: grab;
-  user-select: none;
-  font-size: 0.85rem;
-  width: 130px; /* optional: feste Breite für eine "Spalte" */
-  text-align: center; /* optional: Text zentrieren */
-  transition: background 0.15s, color 0.15s;
-}
-
-.draggable-node:hover {
-  background: #e5e7eb;
-  box-shadow: 0 2px 4px rgba(29, 31, 33, 0.12);
-}
-
-/* LLM-based Nodes */
-.llm-node {
-  border: 2px solid #38bdf8;
-  font-weight: 600;
-}
-
-.llm-node:hover {
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
-}
-
-/* Utility Nodes */
-.utility-node {
-  border: 2px solid #df6a2d;
-  font-weight: 600;
-}
-
-.utility-node:hover {
-  box-shadow: 0 0 8px rgba(223, 106, 45, 0.6);
-}
-
-/* Content  Nodes */
-.content-node {
-  border: 2px solid #37b329;
-  font-weight: 600;
-}
-
-.content-node:hover {
-  box-shadow: 0 0 8px rgba(55, 179, 41, 0.6);
-}
-
-
-.drag-category {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgb(255, 255, 255);
-  margin-top: 10px;
-  margin-bottom: 4px;
-  padding-left: 2px;
-}
-
-/* Animated Toggle-Switch experimental */
-.toggle-switch {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
 
 .toggle-switch label {
   position: relative;
@@ -620,7 +510,6 @@ window.addEventListener("mouseup", stopDragLLM)
   transition: 0.2s;
 }
 
-
 .toggle-switch .toggle-label {
   font-size: 0.85rem;
   color: #ffffff;
@@ -647,6 +536,9 @@ window.addEventListener("mouseup", stopDragLLM)
 
 
 .side-panel {
+  position: absolute; /* oder fixed, je nach deinem Layout */
+  top: 40px;          /* exakt die Höhe deiner Topbar */
+  right: 0;
   width: 500px;
   height: 600px;
   max-height: 90vh;
@@ -771,6 +663,7 @@ window.addEventListener("mouseup", stopDragLLM)
   text-align: center;
   border-bottom: 1px solid #333;
   z-index: 9999;
+
 }
 
 .topbar-item {
@@ -780,6 +673,7 @@ window.addEventListener("mouseup", stopDragLLM)
   cursor: pointer;
   user-select: none;
   border-right: 1px solid #333;
+  position: relative;
 }
 
 .topbar-item:hover {
@@ -1019,5 +913,58 @@ window.addEventListener("mouseup", stopDragLLM)
   cursor: pointer;
 }
 
+/* Gemeinsamer Stil für alle Dropdowns */
+.dropdown {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  background: #FCB465;
+  border: 1px solid #CF9151;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  z-index: 999999;
+  padding: 4px 0;
+}
 
+/* Buttons im Dropdown – wie beim Profilbutton */
+.dropdown button {
+  background: none;
+  border: none;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  color: black;
+  font-size: 14px;
+  width: 100%;
+  border-radius: 4px;
+}
+
+/* Hover – gleiche Farbe wie Profilbutton */
+.dropdown button:hover {
+  background: #F7D6BA;
+}
+
+
+.content-wrapper {
+  position: relative;
+}
+
+.content-dropdown {
+  position: absolute;
+  top: 40px;
+  left: 0;
+}
+
+.topbar-item:nth-child(3) {
+  position: relative;
+}
+
+.llm-dropdown {
+  position: absolute;
+  top: 40px;
+  left: 0;
+}
 </style>

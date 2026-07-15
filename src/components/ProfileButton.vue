@@ -47,23 +47,25 @@ onBeforeUnmount(() => {
     <button class="profile-btn" @click.stop="toggleMenu">
       <span class="profile-icon">🏠</span>
     </button>
+  </div>
 
+  <Teleport to="body">
     <div v-if="open" class="dropdown">
       <button @click="goToProfile">Profil</button>
       <button @click="logout">Logout</button>
     </div>
-  </div>
+  </Teleport>
+
 </template>
 
 <style scoped>
 .profile-wrapper {
-  position: relative;
-  display: inline-block;
-  z-index: 5000;
-  margin-top: 50px;
+  position: fixed;
+  top: 60px;
+  right: 10px;
+  pointer-events: auto;
 }
 
-/* Button mit hellgrauem Kasten */
 .profile-btn {
   background: #99683A;
   border: 1px solid #4A2D11;
@@ -73,17 +75,19 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
+  pointer-events: auto; /* Button bleibt klickbar */
+
+  /* Button sitzt jetzt korrekt */
+  position: fixed;
+  top: 60px;
+  right: 10px;
 }
 
-.profile-icon {
-  font-size: 20px;
-}
-
-/* Dropdown */
 .dropdown {
-  position: absolute;
-  top: 40px;
-  right: 0;
+  position: fixed;
+  top: 100px; /* unter dem Button */
+  right: 10px;
   background: #FCB465;
   border: 1px solid #CF9151;
   border-radius: 6px;
@@ -91,8 +95,17 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-width: 120px;
-  z-index: 999999;
+  z-index: 99999999;
+  isolation: isolate;
 }
+
+
+
+.profile-icon {
+  font-size: 20px;
+}
+
+/* Dropdown */
 
 .dropdown button {
   background: none;

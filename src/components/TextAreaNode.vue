@@ -97,11 +97,13 @@ async function generateSummary() {
     return
   }
 
-  const token = ++requestToken
+  // Token pro Node statt global
+  props.data.requestToken ??= 0
+  const token = ++props.data.requestToken
+
   summary.value = ''
   status.value = "queued"
 
-  // Hier holen wir dynamisch die Prompts
   const {basePrompt, responseFormat} = getPrompts()
 
   try {
@@ -109,21 +111,24 @@ async function generateSummary() {
       sys: basePrompt,
       user: txt,
       responseFormat,
-      onStart: () => {
-      },
+      onStart: () => {},
     })
 
-    if (token !== requestToken) return
+    // Nur akzeptieren, wenn es der neueste Job dieses Nodes ist
+    if (token !== props.data.requestToken) return
 
     const msg = result.message || ''
     summary.value = msg.trim()
 
     status.value = "done"
+    props.data.summaryReady = true
+
   } catch {
     summary.value = ''
     status.value = "error"
   }
 }
+
 
 
 function addCitationByKey(key: string) {
@@ -282,10 +287,17 @@ onBeforeUnmount(() => {
 
 // --- Watchers ---
 watch(isCompact, v => {
-  if (v && props.type !== "figure" && props.data?.value?.trim()) {
-    generateSummary()
+  if (
+      v &&
+      props.type !== "figure" &&
+      props.data?.value?.trim()
+  ) {
+    nextTick(() => {
+      generateSummary()
+    })
   }
 })
+
 
 watch(isCompact, v => {
   if (!v) status.value = "idle"
@@ -309,10 +321,28 @@ watch(bibliography, (newBib) => {
 
 
 watch(TLDR, (val) => {
-  if (typeof val === 'boolean') {
-    isCompact.value = val
+  // TLDR einschalten → minimieren
+  if (val === true && props.type !== "figure") {
+    isCompact.value = true
+  }
+
+  // TLDR ausschalten → vollständiger Reset
+  if (val === false && props.type !== "figure") {
+    isCompact.value = false
+    status.value = "idle"
+    props.data.summaryReady = false
+    props.data.summary = ""
+
+    // WICHTIG: Text zurücksetzen auf Originaltext
+    if (props.data.originalValue) {
+      props.data.value = props.data.originalValue
+      text.value = props.data.originalValue
+    }
   }
 })
+
+
+
 
 function deleteNode() {
   removeNodes([props.id])

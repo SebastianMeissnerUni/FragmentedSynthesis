@@ -98,9 +98,10 @@ function startDemo() {
 <style scoped>
 .upload-wrapper {
   position: relative;
-  display: inline-block;
-  z-index: 5000;
+  display: block;
+  pointer-events: auto;
 }
+
 
 .upload-btn {
   background: #99683A;
@@ -115,13 +116,18 @@ function startDemo() {
   justify-content: center;
   color: white;
   font-size: 20px;
+  position: fixed;
+  top: 110px;     /* Abstand nach unten */
+  right: 10px;   /* Abstand vom rechten Rand (Profilbutton ist bei right:10px) */
+  pointer-events: auto; /* Button bleibt klickbar */
+  z-index: 1000;
 }
 
 
 .dropdown {
-  position: absolute;
-  top: 40px;
-  right: 0;
+  position: fixed;
+  top: 150px;   /* unter dem Button */
+  right: 10px;  /* gleiche Position wie der Button */
   background: #FCB465;
   border: 1px solid #CF9151;
   border-radius: 6px;
