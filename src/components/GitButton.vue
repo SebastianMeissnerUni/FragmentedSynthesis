@@ -40,8 +40,8 @@ function emitGitAction(action: string) {
     width: 40px;
     height: 40px;
     border-radius: 8px;   /* <-- gleiche Rundung wie Profil */
-    background: #99683A;
-    border: 1px solid #4A2D11;
+    background: #66a6d1;
+    border: 1px solid #02376b;
     padding: 6px 8px;
     cursor: pointer;
     display: inline-flex;
@@ -60,8 +60,8 @@ function emitGitAction(action: string) {
   position: fixed;
   top: 200px;    /* unter dem Button */
   right: 10px;  /* gleiche Position wie der Button */
-  background: #FCB465;
-  border: 1px solid #CF9151;
+  background: #66a6d1;
+  border: 1px solid #02376b;
   border-radius: 12px;
   padding: 10px;
   display: flex;
@@ -76,13 +76,13 @@ function emitGitAction(action: string) {
   width: 100%;
   padding: 8px 12px;
   border: none;
-  background: #CF9151;
+  background: #bce0f7;
   border-radius: 8px;
   text-align: left;
   cursor: pointer;
 }
 
 .git-dropdown button:hover {
-  background: #F7D6BA;
+  background: #006ab2;
 }
 </style>

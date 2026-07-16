@@ -525,7 +525,7 @@ function openRepoInEditor(repo: GitHubRepo) {
 
 /* BOX */
 .profile-box {
-  background: #EDE0D1;
+  background: #f2f7f8;
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -541,36 +541,36 @@ function openRepoInEditor(repo: GitHubRepo) {
   width: 100%;
 }
 
-h2, h3 { color: #2E2523; margin-bottom: 20px; }
+h2, h3 { color: #02376b; margin-bottom: 20px; }
 
 .info-group, .input-group { margin-bottom: 15px; }
 
-label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #2E2523; }
+label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #02376b; }
 
 input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #2E2523;   /* passend zu deinem Theme */
+  border: 1px solid #02376b;   /* passend zu deinem Theme */
   border-radius: 4px;
   box-sizing: border-box;
   text-align: center;
 
-  background: #CDB49A;         /* neue Hintergrundfarbe */
-  color: #2B1E18;              /* neue Schriftfarbe */
+  background: #bce0f7;         /* neue Hintergrundfarbe */
+  color: #02376b;              /* neue Schriftfarbe */
 }
 
 input::placeholder {
   text-align: center;
-  color: #2E2523;
+  color: black;
 }
 
-.readonly-input { background-color: #CDB49A; color: #2B1E18; cursor: not-allowed; text-align: center;  }
+.readonly-input { background-color: #bce0f7; color: black; cursor: not-allowed; text-align: center;  }
 
 .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 
 .save-btn {
-  background-color: #6E4B35;
-  color: #EDE0D1;
+  background-color: #006ab2;
+  color: #f2f7f8;
   border: none;
   padding: 12px;
   border-radius: 4px;
@@ -579,10 +579,10 @@ input::placeholder {
 
 .back-btn {
   background: none;
-  border: 1px solid #ccc;
+  border: 1px solid #02376b;
   padding: 8px;
   cursor: pointer;
-  color: #666;
+  color: #02376b;
 }
 
 .error { color: #d9534f; margin-top: 15px; font-size: 0.9rem; }
@@ -600,7 +600,7 @@ input::placeholder {
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #A67C5B;
+  border-bottom: 1px solid #02376b;
 }
 
 .project-info {
@@ -610,16 +610,16 @@ input::placeholder {
 
 .project-info strong {
   font-size: 1rem;
-  color: #333;
+  color: #02376b;
 }
 
 .project-info small {
   font-size: 0.8rem;
-  color: #888;
+  color: #02376b;
 }
 
 .open-btn {
-  background-color: #4a90e2;
+  background-color: #02376b;
   color: white;
   border: none;
   padding: 8px 14px;

@@ -67,8 +67,8 @@ onBeforeUnmount(() => {
 }
 
 .profile-btn {
-  background: #99683A;
-  border: 1px solid #4A2D11;
+  background: #66a6d1;
+  border: 1px solid #02376b;
   border-radius: 8px;
   padding: 6px 8px;
   cursor: pointer;
@@ -88,8 +88,8 @@ onBeforeUnmount(() => {
   position: fixed;
   top: 100px; /* unter dem Button */
   right: 10px;
-  background: #FCB465;
-  border: 1px solid #CF9151;
+  background: #66a6d1;
+  border: 1px solid #02376b;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   display: flex;
@@ -117,6 +117,6 @@ onBeforeUnmount(() => {
 }
 
 .dropdown button:hover {
-  background: #F7D6BA;
+  background: #006ab2;
 }
 </style>

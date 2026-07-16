@@ -545,9 +545,9 @@ window.addEventListener("mouseup", stopDragLLM)
   overflow-y: auto;
   padding: 1rem;
   border-radius: 12px;
-  color: #F7D6BA;
-  box-shadow: 0 4px 20px #401117;
-  background-color: #99683A;
+  color: #02376b;
+  box-shadow: 0 4px 20px #006ab2;
+  background-color: #66a6d1;
 
 }
 
@@ -656,7 +656,7 @@ window.addEventListener("mouseup", stopDragLLM)
   left: 0;
   width: 100%;
   height: 48px;
-  background: #99683A;
+  background: #006ab2;
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   align-items: center;
@@ -667,7 +667,7 @@ window.addEventListener("mouseup", stopDragLLM)
 }
 
 .topbar-item {
-  color: #F7D6BA;
+  color: #f2f7f8;
   font-weight: 600;
   padding: 10px 0;
   cursor: pointer;
@@ -677,7 +677,7 @@ window.addEventListener("mouseup", stopDragLLM)
 }
 
 .topbar-item:hover {
-  background: #4A2D11;
+  background: #66a6d1;
 }
 
 .tools-wrapper {
@@ -689,7 +689,7 @@ window.addEventListener("mouseup", stopDragLLM)
   top: 100%;
   left: 0;
   width: 91%;
-  background: #4A2D11;
+  background: #02376b;
   border: 1px solid #444;
   padding: 8px;
   z-index: 9999;
@@ -708,7 +708,7 @@ window.addEventListener("mouseup", stopDragLLM)
 
 .tools-row button,
 .tools-row .upload-label {
-  background: #99683A;
+  background: #006ab2;
   color: white;
   padding: 6px;
   border-radius: 4px;
@@ -735,179 +735,24 @@ window.addEventListener("mouseup", stopDragLLM)
   position: relative;
 }
 
-.content-circle-menu {
-  position: absolute;
-  width: 260px;
-  height: 260px;
-  border-radius: 50%;
-  pointer-events: none; /* Container nicht klickbar */
-  z-index: 9999;
-}
-
-/* Griff zum Ziehen */
-.circle-drag-handle {
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  width: 260px;
-  height: 260px;
-  border-radius: 50%;
-  border: 10px solid #4A2D11;
-  pointer-events: auto;
-  cursor: grab;
-}
-
-/* Viertel-Buttons */
-.circle-btn {
-  position: absolute;
-  width: 50%;
-  height: 50%;
-  background: #99683A;
-  color: #F7D6BA;
-  font-weight: 600;
-  border: 2px solid #444;
-  box-sizing: border-box;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  pointer-events: auto; /* Buttons klickbar */
-  transition: background 0.2s;
-}
-
-/* Viertel */
-.quarter-1 { top: 0; left: 0; border-top-left-radius: 100%; }
-.quarter-2 { top: 0; right: 0; border-top-right-radius: 100%; }
-.quarter-3 { bottom: 0; right: 0; border-bottom-right-radius: 100%; }
-.quarter-4 { bottom: 0; left: 0; border-bottom-left-radius: 100%; }
-
 .topbar-item.active {
-  background-color: #4A2D11;     /* dunkler Hintergrund */
+  background-color: #02376b;     /* dunkler Hintergrund */
   color: white;               /* Textfarbe */
   border-radius: 6px;         /* optional */
   box-shadow: 0 0 6px #888;   /* optional Glow */
 }
 
-.llm-circle-menu {
-  position: absolute;
-  width: 260px;
-  height: 260px;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-/* Griff */
-.llm-circle-menu .circle-drag-handle {
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  width: 260px;
-  height: 260px;
-  border-radius: 50%;
-  border: 10px solid #4A2D11;
-  pointer-events: auto;
-  cursor: grab;
-}
-
-/* Viertel-Buttons */
-.llm-circle-menu .circle-btn {
-  position: absolute;
-  width: 50%;
-  height: 50%;
-  background: #99683A;
-  color: #F7D6BA;
-  font-weight: 600;
-  border: 2px solid #444;
-  box-sizing: border-box;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  pointer-events: auto;
-  transition: background 0.2s;
-}
-
-/* Viertel */
-.quarter-1 { top: 0; left: 0; border-top-left-radius: 100%; }
-.quarter-2 { top: 0; right: 0; border-top-right-radius: 100%; }
-.quarter-3 { bottom: 0; right: 0; border-bottom-right-radius: 100%; }
-.quarter-4 { bottom: 0; left: 0; border-bottom-left-radius: 100%; }
-
-/* Mittlerer Kreis */
-.center-circle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: #555;
-  border: 3px solid #777;
-  font-size: 18px;
-  pointer-events: auto;
-}
-
-.circle-btn.active {
-  background-color: darkred;
-  border-color: #aaa;
-  box-shadow: 0 0 10px #999;
-}
-.llm-circle-menu .circle-btn:hover {
-  background-color: #401117;
-  border-color: #aaa;
-  box-shadow: 0 0 10px #999;
-}
-.llm-circle-menu .center-circle {
-  width: 90px;
-  height: 90px;
-}
-
-@keyframes pulse-tldr {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    box-shadow: 0 0 6px #401117;
-    background-color: #401117;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.18);
-    box-shadow: 0 0 18px #401117;
-    background-color: #401117;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    box-shadow: 0 0 6px #401117;
-    background-color: #401117;
-  }
-}
-
-
-.center-circle.active {
-  animation: pulse-tldr 1.4s infinite ease-in-out;
-  border-color: #F7D6BA;
-}
-
-.vue-flow__panel.top.left {
-  background: transparent !important;
-  box-shadow: none !important;
-}
 
 .topbar-item.active {
-  background-color: #4A2D11;
-  color: #F7D6BA;
+  background-color: #02376b;
+  color: white;
   border-radius: 6px;
   padding: 6px 10px;
-}
 
-.circle-btn:hover {
-  background-color: #401117;
-  border-color: #aaa;
-  box-shadow: 0 0 10px #999;
 }
 
 .tools-dropdown button:hover {
-  background-color: #401117 !important;
+  background-color: #66a6d1 !important;
   color: white !important;
   border-radius: 6px;
   cursor: pointer;
@@ -916,36 +761,37 @@ window.addEventListener("mouseup", stopDragLLM)
 /* Gemeinsamer Stil für alle Dropdowns */
 .dropdown {
   position: absolute;
-  top: 40px;
+  top: 100%;      /* direkt unter dem Topbar-Button */
   left: 0;
-  background: #FCB465;
-  border: 1px solid #CF9151;
+  width: 91%;    /* WICHTIG: gleiche Breite wie der Topbar-Button */
+  background: #02376b;
+  border: 1px solid #444;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   display: flex;
   flex-direction: column;
-  min-width: 160px;
-  z-index: 999999;
-  padding: 4px 0;
+  padding: 8px;
+  z-index: 9999;
 }
 
-/* Buttons im Dropdown – wie beim Profilbutton */
+/* Buttons im Dropdown – wie bei Tools */
 .dropdown button {
-  background: none;
-  border: none;
-  padding: 10px 12px;
-  text-align: left;
+  background: #006ab2;
+  color: white;
+  padding: 6px;
+  border-radius: 0px;
   cursor: pointer;
-  color: black;
-  font-size: 14px;
+  font-size: 1rem;
+  text-align: left;
   width: 100%;
-  border-radius: 4px;
+  box-sizing: border-box;
 }
 
-/* Hover – gleiche Farbe wie Profilbutton */
 .dropdown button:hover {
-  background: #F7D6BA;
+  background-color: #66a6d1;
+  color: white;
 }
+
 
 
 .content-wrapper {
@@ -954,7 +800,7 @@ window.addEventListener("mouseup", stopDragLLM)
 
 .content-dropdown {
   position: absolute;
-  top: 40px;
+  top: 33px;
   left: 0;
 }
 
@@ -964,7 +810,16 @@ window.addEventListener("mouseup", stopDragLLM)
 
 .llm-dropdown {
   position: absolute;
-  top: 40px;
+  top: 33px;
   left: 0;
 }
+
+.panel-content {
+  min-height: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
 </style>

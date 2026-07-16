@@ -65,93 +65,204 @@ function continueWithoutLogin() {
 </script>
 
 <template>
-  <div class="login-page">
-    <h1>Login</h1>
+  <div class="login-wrapper">
+    <div class="form-container">
 
-    <input v-model="email" placeholder="E-Mail" />
-    <input v-model="password" type="password" placeholder="Passwort" />
+      <h1 class="title">
+        {{ isLogin ? "Login" : "Registrieren" }}
+      </h1>
 
-    <p v-if="authError" class="error">{{ authError }}</p>
+      <div class="form">
 
-    <button @click="submitAuth">
-      {{ isLogin ? "Einloggen" : "Registrieren" }}
-    </button>
+        <div class="input-group">
+          <label>E-Mail</label>
+          <input v-model="email" placeholder="E-Mail" />
+        </div>
 
-    <button @click="toggleMode">
-      {{ isLogin ? "Account erstellen" : "Schon einen Account?" }}
-    </button>
+        <div class="input-group">
+          <label>Passwort</label>
+          <input v-model="password" type="password" placeholder="Passwort" />
+        </div>
 
-    <hr />
+        <p v-if="authError" class="error">{{ authError }}</p>
 
-    <button @click="loginWithGitHub">Mit GitHub anmelden</button>
+        <button class="sign" @click="submitAuth">
+          {{ isLogin ? "Einloggen" : "Registrieren" }}
+        </button>
 
-    <button @click="continueWithoutLogin">Ohne Login fortfahren</button>
+        <div class="forgot">
+          <a @click="toggleMode">
+            {{ isLogin ? "Account erstellen" : "Schon einen Account?" }}
+          </a>
+        </div>
+
+        <div class="social-message">
+          <div class="line"></div>
+          <p class="message">oder</p>
+          <div class="line"></div>
+        </div>
+
+        <div class="social-icons">
+          <button class="icon" @click="loginWithGitHub">
+            <!-- GitHub Icon -->
+            <svg viewBox="0 0 24 24">
+              <path
+                  d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.2-1.2-1.5-1.2-1.5-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 .1.8-.8.8-.8-.8-.1-1.6-.4-2.2-.9-1.7-1.4-1.7-4.1-.1-5.5.5-.5 1.2-.8 1.9-.9-.1-.3-.2-.8-.2-1.2 0-1.1.4-1.9 1.1-2.6-.4-.1-.9-.2-1.4-.2-.5 0-.9.1-1.4.2C6.4 4.7 7.7 3.5 9.3 3c.4-.1.8-.2 1.2-.2.4 0 .8.1 1.2.2 1.6.5 2.9 1.7 3.5 3.3.5.1.9.3 1.3.6.4.3.7.7.9 1.1.2.4.3.9.3 1.4 0 .4-.1.9-.2 1.2.7.1 1.4.4 1.9.9 1.6 1.4 1.6 4.1-.1 5.5-.6.5-1.4.8-2.2.9 0 0-.2.9.8.8 0 0 .6-.1 1.7-1.2 0 0 1.1-.1.1.7 0 0-.7.3-1.2 1.5 0 0-.7 2.1-3.9 1.4v2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="signup">
+          <a @click="continueWithoutLogin">Ohne Login fortfahren</a>
+        </div>
+
+      </div>
+    </div>
   </div>
 </template>
 
+
 <style scoped>
-.auth-overlay {
-  position: fixed;
-  inset: 0;
+.login-wrapper {
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.5);
-  z-index: 9999;
+  background: #0f172a; /* dunkler Hintergrund */
 }
 
-.auth-box {
-  background: black;
-  color: white;
-  padding: 2rem 3rem;
-  border-radius: 20px;
+/* From Uiverse.io by Yaya12085 */
+.form-container {
+  width: 320px;
+  border-radius: 0.75rem;
+  background-color: Black;
+  padding: 2rem;
+  color: rgba(243, 244, 246, 1);
+}
+
+.title {
   text-align: center;
-  width: 600px;
-  box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  position: relative;
-  overflow: hidden;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
 }
 
+.form {
+  margin-top: 1.5rem;
+}
 
-.auth-box input {
+.input-group {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.input-group label {
+  display: block;
+  color: rgba(156, 163, 175, 1);
+  margin-bottom: 4px;
+}
+
+.input-group input {
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(55, 65, 81, 1);
+  outline: 0;
+  background-color: rgba(17, 24, 39, 1);
+  padding: 0.75rem 1rem;
+  color: rgba(243, 244, 246, 1);
+}
+
+.input-group input:focus {
+  border-color: rgba(167, 139, 250);
+}
+
+.forgot {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: rgba(156, 163, 175,1);
+  margin: 8px 0 14px 0;
+}
+
+.forgot a,
+.signup a {
+  color: rgba(243, 244, 246, 1);
+  text-decoration: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.forgot a:hover,
+.signup a:hover {
+  text-decoration: underline rgba(167, 139, 250, 1);
+}
+
+.sign {
   display: block;
   width: 100%;
-  margin: 8px 0;
-  padding: 10px 12px;     /* beeinflusst Höhe */
-  font-size: 1rem;
-  border-radius: 8px;     /* runde Ecken für Inputs */
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-}
-.auth-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 12px;
-}
-.continueWithoutLogin{
-  display: block;        /* eigener Block → kann verschoben werden */
-  width: fit-content;    /* nur so breit wie nötig */
-  margin-left: auto;     /* schiebt ihn komplett nach rechts */
-  margin-top: 12px;
-  background: none;
+  background-color: rgba(167, 139, 250, 1);
+  padding: 0.75rem;
+  text-align: center;
+  color: rgba(17, 24, 39, 1);
   border: none;
-  color: white;
+  border-radius: 0.375rem;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.95rem;
 }
 
-.auth-actions .link {
-  background: transparent;
-  border: none;
-  color: #06c;
-  cursor: pointer;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 0.95rem;
+.social-message {
+  display: flex;
+  align-items: center;
+  padding-top: 1rem;
 }
-.error { color: #b00020; margin-top:8px; }
+
+.line {
+  height: 1px;
+  flex: 1 1 0%;
+  background-color: rgba(55, 65, 81, 1);
+}
+
+.social-message .message {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: rgba(156, 163, 175, 1);
+}
+
+.social-icons {
+  display: flex;
+  justify-content: center;
+}
+
+.social-icons .icon {
+  border-radius: 0.125rem;
+  padding: 0.75rem;
+  border: none;
+  background-color: transparent;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.social-icons .icon svg {
+  height: 1.25rem;
+  width: 1.25rem;
+  fill: #fff;
+}
+
+.signup {
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: rgba(156, 163, 175, 1);
+}
+
+.error {
+  color: #ff6b6b;
+  margin-top: 8px;
+}
 
 </style>
