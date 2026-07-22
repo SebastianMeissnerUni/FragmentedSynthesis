@@ -88,6 +88,21 @@ export interface EdgeMouseEvent {
 
 //Globally provided data:
 
+function normalizeImageName(name: string) {
+  const parts = name.split(".");
+  const ext = parts.pop();
+  const base = parts.join(".");
+
+  const cleanBase = base
+      .replace(/\s+/g, "_")
+      .replace(/[()]/g, "")
+      .replace(/[^a-zA-Z0-9_\-]/g, "")
+      .toLowerCase();
+
+  return `${cleanBase}.${ext?.toLowerCase()}`;
+}
+
+
 function encodeBase64UTF8(str: string): string {
   return btoa(unescape(encodeURIComponent(str)))
 }
@@ -282,6 +297,7 @@ async function loadEntireRepo(repo) {
   console.log("[AppEditor] Lade komplettes Repo:", repo)
 
   hardResetEditor()
+  imageCache.value = {}
   bibliography.value = []
 
   const token = localStorage.getItem("token")
@@ -386,6 +402,16 @@ async function loadEntireRepo(repo) {
       const id = uuid()
       const filename = file.path.split("/").pop()
 
+      const normalizedName = normalizeImageName(filename);
+
+      // ⭐ Bild in den Cache schreiben
+      imageCache.value[normalizedName] = {
+        base64: `data:image/png;base64,${file.content}`,
+        imageName: normalizedName,
+        latexLabel: normalizedName,
+        refLabel: normalizedName
+      };
+
       nodes.push({
         id,
         type: "figureNode",
@@ -393,14 +419,13 @@ async function loadEntireRepo(repo) {
         data: {
           kind: "figure",
           type: "figureNode",
-          imageName: filename,
-          latexLabel: filename,
-          refLabel: filename,
+          imageName: normalizedName,
+          latexLabel: normalizedName,
+          refLabel: normalizedName,
           image: `data:image/png;base64,${file.content}`,
           isFromRepo: true
         }
-      })
-
+      });
 
       edges.push({
         id: `e-${id}-out`,
@@ -411,6 +436,7 @@ async function loadEntireRepo(repo) {
 
       index++
     }
+
 
     if (lower.endsWith(".bib")) {
       const bibContent = decodeBase64UTF8(file.content)

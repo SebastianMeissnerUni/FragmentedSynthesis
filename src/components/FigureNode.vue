@@ -193,34 +193,47 @@ function scanCitationsFromLatexLabel() {
 
 // File upload
 function onFileChange(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file || !imageCache) return
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file || !imageCache) return;
 
-  const reader = new FileReader()
+  const reader = new FileReader();
   reader.onload = () => {
-    // alten Cache-Eintrag löschen, falls vorhanden
+
+    // 1. ECHTEN Dateinamen verwenden, niemals props.data.imageName
+    const rawName = file.name;
+
+    // 2. Normalisieren (genau wie in ZIP)
+    const normalizedName = rawName
+        .replace(/\s+/g, "_")
+        .replace(/[()]/g, "")
+        .replace(/[^a-zA-Z0-9_\-]/g, "")
+        .toLowerCase();
+
+    // 3. Alten Cache-Eintrag löschen
     if (props.data?.imageName && imageCache.value[props.data.imageName]) {
-      delete imageCache.value[props.data.imageName]
+      delete imageCache.value[props.data.imageName];
     }
 
-    const cacheKey = props.data?.imageName || file.name
-
-    imageCache.value[cacheKey] = {
+    // 4. Bild in Cache speichern
+    imageCache.value[normalizedName] = {
       base64: reader.result as string,
       refLabel: refLabel.value,
       latexLabel: latexLabel.value,
-    }
+    };
 
+    // 5. Node aktualisieren
     syncDataDownstream({
-      imageName: cacheKey,
+      imageName: normalizedName,
       image: undefined,
       refLabel: refLabel.value,
-    })
-  }
+    });
+  };
 
-  reader.readAsDataURL(file)
+  reader.readAsDataURL(file);
 }
+
+
 
 onMounted(() => {
   if (!nodeRef.value) return
@@ -307,7 +320,6 @@ onMounted(() => {
               latexLabel: latexLabel.value,
             }
 
-            // Node aktualisieren
             syncDataDownstream({
               image: reader.result
             })
@@ -330,6 +342,30 @@ onMounted(() => {
     syncDataDownstream({})
   }
 
+  // ⭐ 3) Git-Projekt-Bild cachen (Base64 ohne imageName)
+  if (typeof props.data?.image === "string" && !props.data.imageName) {
+
+    const rawName = "image_" + props.id
+
+    const normalizedName = rawName
+        .replace(/\s+/g, "_")
+        .replace(/[()]/g, "")
+        .replace(/[^a-zA-Z0-9_\-]/g, "")
+        .toLowerCase()
+
+    imageCache.value[normalizedName] = {
+      base64: props.data.image,
+      imageName: normalizedName,
+      refLabel: refLabel.value,
+      latexLabel: latexLabel.value,
+    }
+
+    // Node aktualisieren
+    syncDataDownstream({
+      imageName: normalizedName,
+      image: props.data.image
+    })
+  }
 
   scanCitationsFromLatexLabel()
 
@@ -354,6 +390,7 @@ onMounted(() => {
 
   resizeObs.observe(nodeRef.value)
 })
+
 
 
 

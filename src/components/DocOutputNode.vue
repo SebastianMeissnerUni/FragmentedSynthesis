@@ -134,6 +134,20 @@ const bibliographyItems = computed<OutlineItem[]>(() => {
 
 //Functions
 
+function normalizeImageName(name: string) {
+  const parts = name.split(".");
+  const ext = parts.pop();                // "png"
+  const base = parts.join(".");           // "llm_prototyp"
+
+  const cleanBase = base
+      .replace(/\s+/g, "_")
+      .replace(/[()]/g, "")
+      .replace(/[^a-zA-Z0-9_\-]/g, "")
+      .toLowerCase();
+
+  return `${cleanBase}.${ext.toLowerCase()}`;
+}
+
 function parseHandleIndex(handleId?: Edge['targetHandle']): number {
   if (!handleId) return -1
   const [, raw] = String(handleId).split('-')
@@ -360,7 +374,12 @@ function changeSectionLevel(sectionId: string, delta: number) {
 async function downloadZip() {
   const tex = latexSource.value
   const bibEntries = bibliography?.value ?? []
-  const images = imageCache?.value ?? {}
+  const images = JSON.parse(JSON.stringify(imageCache?.value || {}));
+
+  console.log("DOWNLOAD ZIP — IMAGECACHE:", imageCache?.value);
+  console.log("DOWNLOAD ZIP — IMAGES:", images);
+  console.log("DOWNLOAD ZIP — KEYS:", Object.keys(images));
+
 
   if (!tex && !bibEntries.length && Object.keys(images).length === 0) return
 
@@ -393,23 +412,31 @@ async function downloadZip() {
   const imgFolder = zip.folder("images")
 
   for (const [key, entry] of Object.entries(images)) {
-    // entry.base64 = "data:image/png;base64,AAAA..."
-    const base64 = entry.base64
-    const matches = base64.match(/^data:(.*?);base64,(.*)$/)
 
-    if (!matches) continue
+    let base64 = entry.base64;
 
-    const mime = matches[1]           // z.B. "image/png"
-    const b64data = matches[2]
+    // ⭐ FIX: harte Zeilenumbrüche entfernen
+    base64 = base64.replace(/[\r\n]+/g, "");
 
-    // Dateiendung bestimmen
-    let ext = "png"
-    if (mime.includes("jpeg")) ext = "jpg"
-    if (mime.includes("svg")) ext = "svg"
-    if (mime.includes("pdf")) ext = "pdf"
+    const matches = base64.match(/^data:(.*?);base64,(.*)$/);
+    if (!matches) continue;
 
-    imgFolder.file(`${key}.${ext}`, b64data, { base64: true })
+    const mime = matches[1];
+    const b64data = matches[2]; // jetzt gültig
+
+    let ext = "png";
+    if (mime.includes("jpeg")) ext = "jpg";
+    if (mime.includes("svg")) ext = "svg";
+    if (mime.includes("pdf")) ext = "pdf";
+
+    const cleanKey = key
+        .replace(/\.(png|jpg|jpeg|svg|pdf)$/i, "")
+        .replace(/\s+/g, "_")
+        .toLowerCase();
+
+    imgFolder.file(`${cleanKey}.${ext}`, b64data, { base64: true });
   }
+
 
   //
   // ---- ZIP generieren ----
@@ -433,7 +460,7 @@ async function onOpenInOverleaf() {
   const { blob, base64 } = await createLatexZipBlob(
       latexSource.value,
       bibliography?.value ?? [],
-      imageCache?.value ?? {}
+      JSON.parse(JSON.stringify(imageCache?.value || {}))
   );
   openInOverleafWithZip(base64);
 }
@@ -443,7 +470,7 @@ function openInOverleafWithZip(b64zip: string) {
   const dataUri = `data:application/zip;base64,${b64zip}`;
 
   const form = document.createElement("form");
-  form.action = "https://www.overleaf.com/docs";
+  form.action = "https://www.overleaf.com/docs?cacheBust=" + Date.now();
   form.method = "POST";
   form.target = "_blank";
 
@@ -467,13 +494,31 @@ function openInOverleafWithZip(b64zip: string) {
 }
 
 
-async function createLatexZipBlob(tex: string, bibEntries: BibEntry[], images: Record<string, { base64: string }>) {
-  const zip = new JSZip();
+async function createLatexZipBlob(
+    tex: string,
+    bibEntries: BibEntry[],
+    images: Record<string, { base64: string, imageName?: string }>
+) {
+  // FIX 1: Vue Proxy → echtes Objekt
+  images = JSON.parse(JSON.stringify(images));
 
-  // tex
+  // ⭐ Wenn images leer ist → aus imageCache füllen
+  if (Object.keys(images).length === 0 && imageCache?.value) {
+    const cacheObj = JSON.parse(JSON.stringify(imageCache.value));
+
+    for (const [key, entry] of Object.entries(cacheObj)) {
+      const normalizedName = normalizeImageName(key);
+
+      images[normalizedName] = {
+        base64: entry.base64,
+        imageName: normalizedName,
+      };
+    }
+  }
+
+  const zip = new JSZip();
   zip.file("main.tex", tex);
 
-  // bib
   if (bibEntries.length) {
     const bib = bibEntries
         .map(e => e.raw?.trim() ?? "")
@@ -482,28 +527,42 @@ async function createLatexZipBlob(tex: string, bibEntries: BibEntry[], images: R
     zip.file("references.bib", bib);
   }
 
-  // images
   const imgFolder = zip.folder("images");
+
   for (const [key, entry] of Object.entries(images)) {
-    // Base64-String „data:image/...;base64,...“
-    const matches = entry.base64.match(/^data:(.*?);base64,(.*)$/);
-    if (!matches) continue;
-    const mime = matches[1];
-    const b64 = matches[2];
+    let base64 = String(entry.base64).replace(/\s+/g, "");
     let ext = "png";
+
+    const filename = normalizeImageName(entry.imageName ?? key);
+
+    if (!base64.startsWith("data:")) {
+      imgFolder.file(filename, base64, { base64: true });
+      continue;
+    }
+
+    const matches = base64.match(/^data:(.*?);base64,(.*)$/);
+    if (!matches) continue;
+
+    const mime = matches[1];
+    base64 = matches[2].replace(/\s+/g, "");
+
     if (mime.includes("jpeg")) ext = "jpg";
     else if (mime.includes("svg")) ext = "svg";
     else if (mime.includes("pdf")) ext = "pdf";
 
-    const filename = entry.imageName ?? key
-    imgFolder.file(`${filename}.${ext}`, matches[2], { base64: true })
+    const finalName = filename.replace(/\.[^.]+$/, "") + "." + ext;
+
+    imgFolder.file(finalName, base64, { base64: true });
   }
 
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
-  const base64 = await zip.generateAsync({ type: "base64", compression: "DEFLATE" });
+  const base64Zip = await zip.generateAsync({ type: "base64", compression: "DEFLATE" });
 
-  return { blob, base64 };
+  return { blob, base64: base64Zip };
 }
+
+
+
 
 onMounted(() => {
   if (!nodeRef.value) return

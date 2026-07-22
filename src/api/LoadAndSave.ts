@@ -3,6 +3,22 @@ import type { Ref } from 'vue'
 import { useVueFlow } from '@vue-flow/core'
 import type { BibEntry } from '@/App.vue'
 
+// ⭐ Ganz oben in der Datei einfügen
+function normalizeImageName(name: string) {
+    const parts = name.split(".");
+    const ext = parts.pop();                // "png"
+    const base = parts.join(".");           // "llm_prototyp"
+
+    const cleanBase = base
+        .replace(/\s+/g, "_")
+        .replace(/[()]/g, "")
+        .replace(/[^a-zA-Z0-9_\-]/g, "")
+        .toLowerCase();
+
+    return `${cleanBase}.${ext.toLowerCase()}`;
+}
+
+
 export function useLoadAndSave() {
     const {toObject, fromObject, setNodes, setEdges} = useVueFlow()
 
@@ -58,58 +74,68 @@ export function useLoadAndSave() {
     /* ---------------- LOAD ---------------- */
 
     async function restoreFromFile(event: Event) {
-        const input = event.target as HTMLInputElement
-        const file = input.files?.[0]
-        if (!file) return
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
 
-        const reader = new FileReader()
+        const reader = new FileReader();
 
         reader.onload = async () => {
             try {
-                const data = JSON.parse(reader.result as string)
-                console.log("RESTORE CHECK — imageCache in file:", data.imageCache)
+                const data = JSON.parse(reader.result as string);
 
+                // 1) Graph leeren
+                setNodes([]);
+                setEdges([]);
+                await nextTick();
 
-                // 1️⃣ Reset
-                setNodes([])
-                setEdges([])
-                await nextTick()
+                // 2) Cache leeren
+                imageCache.value = {};
 
-                // 2) imageCache wiederherstellen
-                if (data.imageCache && imageCache) {
-                    imageCache.value = data.imageCache
-                }
+                // 3) Graph laden
+                fromObject(data);
+                await nextTick();
 
-                // 3) Nodes reparieren
-                data.nodes?.forEach((node: any) => {
+                // 4) VueFlow braucht einen Tick, um Nodes zu erzeugen
+                await new Promise(resolve => setTimeout(resolve, 50));
 
-                    if (node.data?.image && typeof node.data.image !== "string") {
-                        node.data.image = undefined
+                // 5) Jetzt die echten Nodes reparieren
+                nodes.value.forEach((vueNode: any) => {
+                    const d = vueNode.data;
+
+                    // Hat das Node ein Base64-Bild?
+                    if (d?.image && typeof d.image === "string") {
+
+                        // Bildname normalisieren
+                        const rawName = d.imageName || ("image_" + vueNode.id);
+                        const normalizedName = normalizeImageName(rawName);
+
+                        // In Cache schreiben
+                        imageCache.value[normalizedName] = {
+                            base64: d.image,
+                            imageName: normalizedName,
+                            refLabel: d.refLabel,
+                            latexLabel: d.latexLabel,
+                        };
+
+                        // Node aktualisieren
+                        vueNode.data.imageName = normalizedName;
+                        vueNode.data.image = d.image; // wichtig für ZIP
                     }
+                });
 
-                    if (node.data?.imageName && imageCache?.value[node.data.imageName]) {
-                        node.data.image = imageCache.value[node.data.imageName].base64
-                    }
-                })
-
-
-
-                // 4️⃣ Graph laden
-                fromObject(data)
-                await nextTick()
-
-                // 5️⃣ Restliche Daten
-                if (data.bibliography) bibliography.value = data.bibliography
-                if (data.templates && setTemplates) setTemplates(data.templates)
-                if (data.snapshots && snapshots) snapshots.value = data.snapshots
-                if (typeof data.TLDR === 'boolean') TLDR.value = data.TLDR
+                // 6) Restliche Daten
+                if (data.bibliography) bibliography.value = data.bibliography;
+                if (data.templates && setTemplates) setTemplates(data.templates);
+                if (data.snapshots && snapshots) snapshots.value = data.snapshots;
+                if (typeof data.TLDR === 'boolean') TLDR.value = data.TLDR;
 
             } catch (err) {
-                console.error('Restore failed', err)
+                console.error('Restore failed', err);
             }
-        }
+        };
 
-        reader.readAsText(file)
+        reader.readAsText(file);
     }
     return {
         saveToFile,

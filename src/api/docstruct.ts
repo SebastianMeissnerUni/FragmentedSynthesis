@@ -145,7 +145,7 @@ export function renderToLatex(
     figure(figure: FigureElement) {
       const lines: string[] = ["\\begin{figure}[h]", "  \\centering"];
       if (figure.imageName) {
-        const path = `images/${escLaTeX(figure.imageName)}`;
+        const path = `images/${escLaTeX(figure.imageName.toLowerCase())}`;
         lines.push(`  \\includegraphics[width=\\linewidth,keepaspectratio]{${path}}`);
       }      if (figure.latexLabel) lines.push(`  \\caption{${escLaTeXPreserveCites(figure.latexLabel)}}`);
       if (figure.refLabel) lines.push(`  \\label{${figure.refLabel}}`);
