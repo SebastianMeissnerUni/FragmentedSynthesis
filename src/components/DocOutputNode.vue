@@ -134,6 +134,62 @@ const bibliographyItems = computed<OutlineItem[]>(() => {
 
 //Functions
 
+function sanitizeLatex(tex: string): string {
+  let out = tex;
+
+  // 1. Whitelist echter LaTeX-Kommandos
+  const whitelist = [
+    "documentclass", "usepackage", "begin", "end", "section", "subsection",
+    "subsubsection", "chapter", "paragraph", "label", "cite", "ref", "pageref",
+    "textbf", "textit", "emph", "item", "caption", "includegraphics",
+    "tableofcontents", "newpage", "par"
+  ];
+
+  // 2. Entferne Backslashes vor Wörtern, die NICHT in der Whitelist sind
+  out = out.replace(/\\([A-Za-zÄÖÜäöüß]+)/g, (match, word) => {
+    return whitelist.includes(word) ? match : word;
+  });
+
+  // 3. Entferne einzelne Backslashes am Zeilenanfang
+  out = out.replace(/^\s*\\\s*$/gm, "");
+
+  // 4. Entferne "centering" Geisterzeilen
+  out = out.replace(/^\s*centering\s*$/gm, "");
+
+  // 5. Repariere Figure-Blöcke
+  out = out.replace(/\\begin\{figure\}\[h\][^]*?\\includegraphics/g, (block) => {
+    let fixed = block.replace(/^\s*\\\s*$/gm, "");
+    fixed = fixed.replace(/^\s*centering\s*$/gm, "");
+    fixed = fixed.replace(/^\s*$/gm, "");
+    return fixed;
+  });
+
+  // 6. Repariere Captions mit Unterstrichen
+  out = out.replace(/\\caption\{([^}]*)\}/g, (m, text) => {
+    return "\\caption{" + text.replace(/_/g, "\\_") + "}";
+  });
+
+  // 7. Entferne doppelte Backslashes
+  out = out.replace(/\\\\+/g, "\\");
+
+  // 8. Repariere paragraph-chapter Kombination
+  out = out.replace(/\\paragraph\{\}\s*\\chapter/g, "\\chapter");
+
+  // 9. Dokumentklasse korrigieren
+  if (out.includes("\\chapter") && out.includes("\\documentclass{article}")) {
+    out = out.replace("\\documentclass{article}", "\\documentclass{report}");
+  }
+
+  // 10. Entferne kaputte UTF-8 Zeichen außer Umlaute
+  out = out.replace(/[^\x00-\x7F]/g, (m) => /[äöüÄÖÜß]/.test(m) ? m : "");
+
+  return out;
+}
+
+
+
+
+
 function normalizeImageName(name: string) {
   const parts = name.split(".");
   const ext = parts.pop();                // "png"
@@ -499,20 +555,26 @@ async function createLatexZipBlob(
     bibEntries: BibEntry[],
     images: Record<string, { base64: string, imageName?: string }>
 ) {
-  // FIX 1: Vue Proxy → echtes Objekt
+  // ⭐ Latex reparieren
+  tex = sanitizeLatex(tex);
+
+  // Vue Proxy entfernen
   images = JSON.parse(JSON.stringify(images));
 
-  // ⭐ Wenn images leer ist → aus imageCache füllen
+  // ⭐ Nur Bilder exportieren, die wirklich im Dokument vorkommen
+  const usedImages = nodes.value
+      .filter(n => n.data?.imageName)
+      .map(n => n.data.imageName);
+
+  // Wenn images leer ist → nur die wirklich verwendeten Bilder aus dem Cache holen
   if (Object.keys(images).length === 0 && imageCache?.value) {
-    const cacheObj = JSON.parse(JSON.stringify(imageCache.value));
-
-    for (const [key, entry] of Object.entries(cacheObj)) {
-      const normalizedName = normalizeImageName(key);
-
-      images[normalizedName] = {
-        base64: entry.base64,
-        imageName: normalizedName,
-      };
+    for (const name of usedImages) {
+      if (imageCache.value[name]) {
+        images[name] = {
+          base64: imageCache.value[name].base64,
+          imageName: name
+        };
+      }
     }
   }
 
@@ -527,32 +589,37 @@ async function createLatexZipBlob(
     zip.file("references.bib", bib);
   }
 
-  const imgFolder = zip.folder("images");
+  // Nur erzeugen, wenn wirklich Bilder existieren
+  if (Object.keys(images).length > 0) {
+    const imgFolder = zip.folder("images");
 
-  for (const [key, entry] of Object.entries(images)) {
-    let base64 = String(entry.base64).replace(/\s+/g, "");
-    let ext = "png";
+    for (const [key, entry] of Object.entries(images)) {
+      let base64 = String(entry.base64).replace(/\s+/g, "");
+      let ext = key.split(".").pop() ?? "png";
 
-    const filename = normalizeImageName(entry.imageName ?? key);
+      const filename = normalizeImageName(entry.imageName ?? key);
 
-    if (!base64.startsWith("data:")) {
-      imgFolder.file(filename, base64, { base64: true });
-      continue;
+      // RAW Base64 ohne data:
+      if (!base64.startsWith("data:")) {
+        imgFolder.file(filename, base64, { base64: true });
+        continue;
+      }
+
+      // data:image/...;base64,...
+      const matches = base64.match(/^data:(.*?);base64,(.*)$/);
+      if (!matches) continue;
+
+      const mime = matches[1];
+      base64 = matches[2].replace(/\s+/g, "");
+
+      if (mime.includes("jpeg")) ext = "jpg";
+      else if (mime.includes("svg")) ext = "svg";
+      else if (mime.includes("pdf")) ext = "pdf";
+
+      const finalName = filename.replace(/\.[^.]+$/, "") + "." + ext;
+
+      imgFolder.file(finalName, base64, { base64: true });
     }
-
-    const matches = base64.match(/^data:(.*?);base64,(.*)$/);
-    if (!matches) continue;
-
-    const mime = matches[1];
-    base64 = matches[2].replace(/\s+/g, "");
-
-    if (mime.includes("jpeg")) ext = "jpg";
-    else if (mime.includes("svg")) ext = "svg";
-    else if (mime.includes("pdf")) ext = "pdf";
-
-    const finalName = filename.replace(/\.[^.]+$/, "") + "." + ext;
-
-    imgFolder.file(finalName, base64, { base64: true });
   }
 
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
@@ -560,8 +627,6 @@ async function createLatexZipBlob(
 
   return { blob, base64: base64Zip };
 }
-
-
 
 
 onMounted(() => {
