@@ -137,7 +137,6 @@ const bibliographyItems = computed<OutlineItem[]>(() => {
 function sanitizeLatex(tex: string): string {
   let out = tex;
 
-  // 1. Whitelist echter LaTeX-Kommandos
   const whitelist = [
     "documentclass", "usepackage", "begin", "end", "section", "subsection",
     "subsubsection", "chapter", "paragraph", "label", "cite", "ref", "pageref",
@@ -145,43 +144,41 @@ function sanitizeLatex(tex: string): string {
     "tableofcontents", "newpage", "par"
   ];
 
-  // 2. Entferne Backslashes vor Wörtern, die NICHT in der Whitelist sind
-  out = out.replace(/\\([A-Za-zÄÖÜäöüß]+)/g, (match, word) => {
+  // 1. Backslashes vor echten LaTeX-Kommandos behalten
+  out = out.replace(/\\([A-Za-z]+)/g, (match, word) => {
     return whitelist.includes(word) ? match : word;
   });
 
-  // 3. Entferne einzelne Backslashes am Zeilenanfang
+  // 2. Backslashes vor allem anderen entfernen (Bindestriche, Zahlen, Sonderzeichen)
+  out = out.replace(/\\(?=[^A-Za-z])/g, "");
+
+  // 3. Backslashes vor Leerzeichen entfernen
+  out = out.replace(/\\\s+/g, "");
+
+  // 4. Einzelne Backslashes am Zeilenanfang entfernen
   out = out.replace(/^\s*\\\s*$/gm, "");
 
-  // 4. Entferne "centering" Geisterzeilen
+  // 5. "centering" Geisterzeilen entfernen
   out = out.replace(/^\s*centering\s*$/gm, "");
 
-  // 5. Repariere Figure-Blöcke
-  out = out.replace(/\\begin\{figure\}\[h\][^]*?\\includegraphics/g, (block) => {
-    let fixed = block.replace(/^\s*\\\s*$/gm, "");
-    fixed = fixed.replace(/^\s*centering\s*$/gm, "");
-    fixed = fixed.replace(/^\s*$/gm, "");
-    return fixed;
-  });
-
-  // 6. Repariere Captions mit Unterstrichen
-  out = out.replace(/\\caption\{([^}]*)\}/g, (m, text) => {
-    return "\\caption{" + text.replace(/_/g, "\\_") + "}";
-  });
-
-  // 7. Entferne doppelte Backslashes
+  // 6. Doppelte Backslashes reduzieren
   out = out.replace(/\\\\+/g, "\\");
 
-  // 8. Repariere paragraph-chapter Kombination
-  out = out.replace(/\\paragraph\{\}\s*\\chapter/g, "\\chapter");
+  // 7. Leere paragraph entfernen
+  out = out.replace(/\\paragraph\{\}\s*/g, "");
 
-  // 9. Dokumentklasse korrigieren
+  // 8. Dokumentklasse korrigieren
   if (out.includes("\\chapter") && out.includes("\\documentclass{article}")) {
     out = out.replace("\\documentclass{article}", "\\documentclass{report}");
   }
 
-  // 10. Entferne kaputte UTF-8 Zeichen außer Umlaute
-  out = out.replace(/[^\x00-\x7F]/g, (m) => /[äöüÄÖÜß]/.test(m) ? m : "");
+  // Bibliographie automatisch einfügen, falls nicht vorhanden
+  if (!out.includes("\\bibliography{")) {
+    out = out.replace(
+        /\\end\{document\}/,
+        "\\bibliographystyle{plain}\n\\bibliography{references}\n\\end{document}"
+    );
+  }
 
   return out;
 }
