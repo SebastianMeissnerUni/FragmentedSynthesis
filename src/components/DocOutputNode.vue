@@ -134,8 +134,23 @@ const bibliographyItems = computed<OutlineItem[]>(() => {
 
 //Functions
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result));
+    reader.readAsDataURL(blob);
+  });
+}
+
+
 function sanitizeLatex(tex: string): string {
   let out = tex;
+
+  // ⭐ 0. linewidth komplett aus dem Sanitizer herausnehmen
+  out = out.replace(/\\linewidth/g, "§§LINEWIDTH§§");
+
+  // ⭐ 1. width=linewidth → width=\linewidth (aber nur als Platzhalter!)
+  out = out.replace(/width\s*=\s*linewidth/g, "width=§§LINEWIDTH§§");
 
   const whitelist = [
     "documentclass", "usepackage", "begin", "end", "section", "subsection",
@@ -144,35 +159,35 @@ function sanitizeLatex(tex: string): string {
     "tableofcontents", "newpage", "par"
   ];
 
-  // 1. Backslashes vor echten LaTeX-Kommandos behalten
+  // 2. Backslashes vor echten LaTeX-Kommandos behalten
   out = out.replace(/\\([A-Za-z]+)/g, (match, word) => {
     return whitelist.includes(word) ? match : word;
   });
 
-  // 2. Backslashes vor allem anderen entfernen (Bindestriche, Zahlen, Sonderzeichen)
+  // 3. Backslashes vor allem anderen entfernen
   out = out.replace(/\\(?=[^A-Za-z])/g, "");
 
-  // 3. Backslashes vor Leerzeichen entfernen
+  // 4. Backslashes vor Leerzeichen entfernen
   out = out.replace(/\\\s+/g, "");
 
-  // 4. Einzelne Backslashes am Zeilenanfang entfernen
+  // 5. Einzelne Backslashes am Zeilenanfang entfernen
   out = out.replace(/^\s*\\\s*$/gm, "");
 
-  // 5. "centering" Geisterzeilen entfernen
+  // 6. "centering" Geisterzeilen entfernen
   out = out.replace(/^\s*centering\s*$/gm, "");
 
-  // 6. Doppelte Backslashes reduzieren
+  // 7. Doppelte Backslashes reduzieren
   out = out.replace(/\\\\+/g, "\\");
 
-  // 7. Leere paragraph entfernen
+  // 8. Leere paragraph entfernen
   out = out.replace(/\\paragraph\{\}\s*/g, "");
 
-  // 8. Dokumentklasse korrigieren
+  // 9. Dokumentklasse korrigieren
   if (out.includes("\\chapter") && out.includes("\\documentclass{article}")) {
     out = out.replace("\\documentclass{article}", "\\documentclass{report}");
   }
 
-  // Bibliographie automatisch einfügen, falls nicht vorhanden
+  // 10. Bibliographie automatisch einfügen
   if (!out.includes("\\bibliography{")) {
     out = out.replace(
         /\\end\{document\}/,
@@ -180,8 +195,16 @@ function sanitizeLatex(tex: string): string {
     );
   }
 
+  // ⭐ 11. linewidth wieder korrekt einsetzen
+  out = out.replace(/§§LINEWIDTH§§/g, "\\linewidth");
+
   return out;
 }
+
+
+
+
+
 
 
 
@@ -591,10 +614,29 @@ async function createLatexZipBlob(
     const imgFolder = zip.folder("images");
 
     for (const [key, entry] of Object.entries(images)) {
-      let base64 = String(entry.base64).replace(/\s+/g, "");
+      let base64 = entry.base64;
+
+// Falls Vue Proxy → echtes Base64 extrahieren
+      if (typeof base64 === "object" && base64.base64) {
+        base64 = base64.base64;
+      }
+
+// Falls Blob → in Base64 konvertieren
+      if (base64 instanceof Blob) {
+        base64 = await blobToBase64(base64);
+      }
+
+// Falls kein data:image/... Header → hinzufügen
+      if (!base64.startsWith("data:")) {
+        base64 = "data:image/png;base64," + base64;
+      }
+
+      base64 = base64.replace(/\s+/g, "");
+
       let ext = key.split(".").pop() ?? "png";
 
-      const filename = normalizeImageName(entry.imageName ?? key);
+      // WICHTIG: Dateiname NICHT verändern!
+      const filename = entry.imageName ?? key;
 
       // RAW Base64 ohne data:
       if (!base64.startsWith("data:")) {
@@ -609,14 +651,12 @@ async function createLatexZipBlob(
       const mime = matches[1];
       base64 = matches[2].replace(/\s+/g, "");
 
-      if (mime.includes("jpeg")) ext = "jpg";
-      else if (mime.includes("svg")) ext = "svg";
-      else if (mime.includes("pdf")) ext = "pdf";
-
-      const finalName = filename.replace(/\.[^.]+$/, "") + "." + ext;
+      // Dateiendung NICHT überschreiben
+      const finalName = filename;
 
       imgFolder.file(finalName, base64, { base64: true });
     }
+
   }
 
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
