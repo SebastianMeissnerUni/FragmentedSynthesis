@@ -404,7 +404,7 @@ async function loadEntireRepo(repo) {
 
       const normalizedName = normalizeImageName(filename);
 
-      // ⭐ Bild in den Cache schreiben
+      //  Bild in den Cache schreiben
       imageCache.value[normalizedName] = {
         base64: `data:image/png;base64,${file.content}`,
         imageName: normalizedName,

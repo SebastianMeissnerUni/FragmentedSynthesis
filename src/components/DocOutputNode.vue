@@ -146,10 +146,10 @@ function blobToBase64(blob: Blob): Promise<string> {
 function sanitizeLatex(tex: string): string {
   let out = tex;
 
-  // ⭐ 0. linewidth komplett aus dem Sanitizer herausnehmen
+  //  0. linewidth komplett aus dem Sanitizer herausnehmen
   out = out.replace(/\\linewidth/g, "§§LINEWIDTH§§");
 
-  // ⭐ 1. width=linewidth → width=\linewidth (aber nur als Platzhalter!)
+  //  1. width=linewidth → width=\linewidth (aber nur als Platzhalter!)
   out = out.replace(/width\s*=\s*linewidth/g, "width=§§LINEWIDTH§§");
 
   const whitelist = [
@@ -195,19 +195,11 @@ function sanitizeLatex(tex: string): string {
     );
   }
 
-  // ⭐ 11. linewidth wieder korrekt einsetzen
+  // 11. linewidth wieder korrekt einsetzen
   out = out.replace(/§§LINEWIDTH§§/g, "\\linewidth");
 
   return out;
 }
-
-
-
-
-
-
-
-
 
 
 function normalizeImageName(name: string) {
@@ -491,7 +483,7 @@ async function downloadZip() {
 
     let base64 = entry.base64;
 
-    // ⭐ FIX: harte Zeilenumbrüche entfernen
+    //  FIX: harte Zeilenumbrüche entfernen
     base64 = base64.replace(/[\r\n]+/g, "");
 
     const matches = base64.match(/^data:(.*?);base64,(.*)$/);
@@ -575,13 +567,13 @@ async function createLatexZipBlob(
     bibEntries: BibEntry[],
     images: Record<string, { base64: string, imageName?: string }>
 ) {
-  // ⭐ Latex reparieren
+  //  Latex reparieren
   tex = sanitizeLatex(tex);
 
   // Vue Proxy entfernen
   images = JSON.parse(JSON.stringify(images));
 
-  // ⭐ Nur Bilder exportieren, die wirklich im Dokument vorkommen
+  //  Nur Bilder exportieren, die wirklich im Dokument vorkommen
   const usedImages = nodes.value
       .filter(n => n.data?.imageName)
       .map(n => n.data.imageName);

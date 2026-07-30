@@ -3,7 +3,7 @@ import type { Ref } from 'vue'
 import { useVueFlow } from '@vue-flow/core'
 import type { BibEntry } from '@/App.vue'
 
-// ⭐ Ganz oben in der Datei einfügen
+//  Ganz oben in der Datei einfügen
 function normalizeImageName(name: string) {
     const parts = name.split(".");
     const ext = parts.pop();                // "png"

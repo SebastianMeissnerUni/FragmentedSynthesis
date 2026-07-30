@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import {ref} from "vue";
 import { useRouter } from "vue-router";
+import Icon from "../Icon.vue";
+
+
+
 
 
 const isLogin = ref(true)
@@ -104,13 +108,9 @@ function continueWithoutLogin() {
 
         <div class="social-icons">
           <button class="icon" @click="loginWithGitHub">
-            <!-- GitHub Icon -->
-            <svg viewBox="0 0 24 24">
-              <path
-                  d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.2-1.2-1.5-1.2-1.5-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 .1.8-.8.8-.8-.8-.1-1.6-.4-2.2-.9-1.7-1.4-1.7-4.1-.1-5.5.5-.5 1.2-.8 1.9-.9-.1-.3-.2-.8-.2-1.2 0-1.1.4-1.9 1.1-2.6-.4-.1-.9-.2-1.4-.2-.5 0-.9.1-1.4.2C6.4 4.7 7.7 3.5 9.3 3c.4-.1.8-.2 1.2-.2.4 0 .8.1 1.2.2 1.6.5 2.9 1.7 3.5 3.3.5.1.9.3 1.3.6.4.3.7.7.9 1.1.2.4.3.9.3 1.4 0 .4-.1.9-.2 1.2.7.1 1.4.4 1.9.9 1.6 1.4 1.6 4.1-.1 5.5-.6.5-1.4.8-2.2.9 0 0-.2.9.8.8 0 0 .6-.1 1.7-1.2 0 0 1.1-.1.1.7 0 0-.7.3-1.2 1.5 0 0-.7 2.1-3.9 1.4v2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"
-              />
-            </svg>
+            <Icon name="github" />
           </button>
+
         </div>
 
         <div class="signup">
@@ -129,16 +129,16 @@ function continueWithoutLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f172a; /* dunkler Hintergrund */
+  background: #bce0f7; /* dunkler Hintergrund */
 }
 
-/* From Uiverse.io by Yaya12085 */
+
 .form-container {
   width: 320px;
   border-radius: 0.75rem;
-  background-color: Black;
+  background-color: #02376b;
   padding: 2rem;
-  color: rgba(243, 244, 246, 1);
+  color: #f2f7f8;
 }
 
 .title {
@@ -160,22 +160,25 @@ function continueWithoutLogin() {
 
 .input-group label {
   display: block;
-  color: rgba(156, 163, 175, 1);
+  color: #f2f7f8;
   margin-bottom: 4px;
 }
 
 .input-group input {
   width: 100%;
   border-radius: 0.375rem;
-  border: 1px solid rgba(55, 65, 81, 1);
+  border: 1px solid #f2f7f8;
   outline: 0;
-  background-color: rgba(17, 24, 39, 1);
+  background-color: #bce0f7;
   padding: 0.75rem 1rem;
-  color: rgba(243, 244, 246, 1);
+  color: #02376b;
+  max-width: 260px;
+  margin: 0 auto;   /* zentriert */
+  display: block;
 }
 
 .input-group input:focus {
-  border-color: rgba(167, 139, 250);
+  border-color: #f2f7f8;
 }
 
 .forgot {
@@ -183,7 +186,7 @@ function continueWithoutLogin() {
   justify-content: flex-end;
   font-size: 0.75rem;
   line-height: 1rem;
-  color: rgba(156, 163, 175,1);
+  color: red;
   margin: 8px 0 14px 0;
 }
 
@@ -203,14 +206,15 @@ function continueWithoutLogin() {
 .sign {
   display: block;
   width: 100%;
-  background-color: rgba(167, 139, 250, 1);
+  background-color: #66a6d1;
   padding: 0.75rem;
   text-align: center;
-  color: rgba(17, 24, 39, 1);
+  color: #02376b;
   border: none;
   border-radius: 0.375rem;
   font-weight: 600;
   cursor: pointer;
+  margin-top: 12px;
 }
 
 .social-message {
@@ -222,7 +226,7 @@ function continueWithoutLogin() {
 .line {
   height: 1px;
   flex: 1 1 0%;
-  background-color: rgba(55, 65, 81, 1);
+  background-color: #66a6d1;
 }
 
 .social-message .message {
@@ -230,7 +234,7 @@ function continueWithoutLogin() {
   padding-right: 0.75rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: rgba(156, 163, 175, 1);
+  color: #66a6d1;
 }
 
 .social-icons {
@@ -248,8 +252,8 @@ function continueWithoutLogin() {
 }
 
 .social-icons .icon svg {
-  height: 1.25rem;
-  width: 1.25rem;
+  height: 1.75rem;
+  width: 1.75rem;
   fill: #fff;
 }
 

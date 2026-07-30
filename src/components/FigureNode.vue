@@ -342,7 +342,7 @@ onMounted(() => {
     syncDataDownstream({})
   }
 
-  // ⭐ 3) Git-Projekt-Bild cachen (Base64 ohne imageName)
+  //  3) Git-Projekt-Bild cachen (Base64 ohne imageName)
   if (typeof props.data?.image === "string" && !props.data.imageName) {
 
     const rawName = "image_" + props.id
