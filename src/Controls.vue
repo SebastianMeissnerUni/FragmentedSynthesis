@@ -405,9 +405,19 @@ window.addEventListener("mouseup", stopDragLLM)
 
   </Panel>
 
+  <!-- TLDR Indicator -->
+  <div
+      v-if="TLDR"
+      class="tldr-indicator"
+      @click="TLDR = false; activeLLMButton = null"
+  >
+    TLDR aktiv
+  </div>
+
   <!-- RIGHT PANELS -->
   <Panel v-if="activeSidebar === '📚 bibliography'" position="top-right">
-    <div class="side-panel">
+
+  <div class="side-panel">
       <h4>Reference Tracker</h4>
       <ReferencePanelContent/>
     </div>
@@ -435,6 +445,7 @@ window.addEventListener("mouseup", stopDragLLM)
   </Panel>
 
 </template>
+
 
 
 
@@ -821,5 +832,22 @@ window.addEventListener("mouseup", stopDragLLM)
   margin: 0 !important;
   overflow: hidden !important;
 }
+
+.tldr-indicator {
+  position: absolute;
+  bottom: 20px;
+  left: 15px;
+  background: #4caf50;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  z-index: 9999;
+  cursor: pointer;
+  user-select: none;
+}
+
 
 </style>
