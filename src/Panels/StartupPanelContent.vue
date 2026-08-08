@@ -319,7 +319,7 @@ function handleUploadFile() {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(15, 15, 15, 0.9);
+  background: #66a6d1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -329,8 +329,8 @@ function handleUploadFile() {
 }
 
 .demo-box {
-  background: rgba(30, 30, 30, 0.95);
-  color: white;
+  background: #bce0f7;
+  color: #02376b;
   padding: 2rem 3rem;
   border-radius: 20px;
   text-align: center;
@@ -342,31 +342,6 @@ function handleUploadFile() {
   overflow: hidden;
 }
 
-.demo-box::before {
-  pointer-events: none;
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  padding: 2px;
-  background: linear-gradient(
-      90deg,
-      red,
-      orange,
-      yellow,
-      lime,
-      cyan,
-      blue,
-      magenta,
-      red
-  );
-  background-size: 400%;
-  animation: rainbowBorder 3s linear infinite;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box,
-  linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-}
 
 .demo-box h1 {
   font-size: 1.8rem;
