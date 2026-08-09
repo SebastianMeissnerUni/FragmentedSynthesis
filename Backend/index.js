@@ -34,6 +34,12 @@ app.get("/", (req, res) => {
     res.json({ message: "Backend läuft erfolgreich!" });
 });
 
+app.get("/debug/schema", (req, res) => {
+    const rows = db.prepare("PRAGMA table_info(users)").all();
+    res.json(rows);
+});
+
+
 // --- Test-Insert ---
 app.get("/addtest", (req, res) => {
     db.prepare("INSERT INTO users (username, password_hash) VALUES (?, ?)")

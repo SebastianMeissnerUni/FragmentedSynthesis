@@ -1,0 +1,5 @@
+Backend/
+node_modules/
+Dockerfile.backend
+docker-compose.yml
+database.sqlite
