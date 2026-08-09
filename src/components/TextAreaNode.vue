@@ -495,15 +495,20 @@ watch(
     }
 )
 
-function undo(textarea: HTMLTextAreaElement | null) {
+function undo() {
+  const textarea = textAreaRef.value
   if (!textarea) return
-  document.execCommand('undo') // ruft die Browser-Undo-Funktion auf
+  textarea.focus()
+  document.execCommand('undo')
 }
 
-function redo(textarea: HTMLTextAreaElement | null) {
+function redo() {
+  const textarea = textAreaRef.value
   if (!textarea) return
-  document.execCommand('redo') // ruft die Browser-Redo-Funktion auf
+  textarea.focus()
+  document.execCommand('redo')
 }
+
 
 
 </script>
