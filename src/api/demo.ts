@@ -100,7 +100,7 @@ Click “Next Step” to get started.`, true
         () => {
             spawnStepNode(
                 200,
-                400,
+                350,
                 `Let’s get started with the first dropdown menu.
 
 Please click on "Tools".
@@ -151,7 +151,7 @@ Title: This creates a Compose node. With it, you can set titles in sections if y
         () => {
             spawnStepNode(
                 500,
-                500,
+                350,
                 `The next step is the LLM dropdown menu.
 
 The following nodes help you refine text:
@@ -171,8 +171,8 @@ If you want to change the output language of the LLM, you can switch from Englis
         // STEP 5 – Finish
         () => {
             spawnStepNode(
-                dimensions.value!.width / 2,
-                dimensions.value!.height / 2,
+                450,
+                350,
                 `Now there are just two more nodes to explain in the top bar.
 
 Stickynode is just for your thoughts, reminders, or notes for yourself.
@@ -190,8 +190,8 @@ After you have connected everything you need, you can export it easily as ZIP, T
 
         () => {
             spawnStepNode(
-                500,
-                500,
+                400,
+                300,
                 `This is the last step.
 
 If you click on Bibliography, you can add your references and paste your BibTeX entries. It gives you an overview of your bibliography.
