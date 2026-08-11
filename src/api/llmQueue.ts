@@ -110,13 +110,11 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
     body: JSON.stringify(body)
   });
 
-// LOGS HIER EINBAUEN
   console.log("LLM STATUS:", resp.status);
   console.log("LLM HEADERS:", [...resp.headers.entries()]);
 
   const raw = await resp.text();
 
-// LOG RAW RESPONSE
   console.log("LLM RAW RESPONSE:", raw);
 
   let parsed: any;
@@ -127,7 +125,6 @@ async function runJob(options: LlmJobOptions): Promise<LlmResult> {
     parsed = undefined;
   }
 
-// LOG PARSED RESPONSE
   console.log("LLM PARSED RESPONSE:", parsed);
 
 

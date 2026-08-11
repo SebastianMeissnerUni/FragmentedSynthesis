@@ -4,7 +4,7 @@ import type { Ref } from 'vue'
 import type { Node, Edge } from '@vue-flow/core'
 
 export function useSnapshots() {
-    // 🔒 inject NUR EINMAL im setup-Kontext
+
     const snapshots = inject<Ref<any[]>>('snapshots')!
     const nodes = inject<Ref<Node[]>>('nodes')!
     const edges = inject<Ref<Edge[]>>('edges')!
@@ -21,7 +21,7 @@ export function useSnapshots() {
         await nextTick()
         await new Promise(r => requestAnimationFrame(r))
 
-        // NEU: kurze Pause, damit VueFlow stabil ist
+        // kurze Pause, damit VueFlow stabil ist
         await new Promise(r => setTimeout(r, 50))
 
         const exportData = {
@@ -71,7 +71,7 @@ export function useSnapshots() {
         edges.value = []
 
         nextTick(() => {
-            // 🔑 Bilder zuerst in den Cache zurücklegen
+            //  Bilder zuerst in den Cache zurücklegen
             snap.data.nodes?.forEach((node: any) => {
                 if (node.data?.image && node.data.imageName) {
                     imageCache.value[node.data.imageName] = {

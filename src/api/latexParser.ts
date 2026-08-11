@@ -222,7 +222,6 @@ export function parseLatexToNodesAndEdges(
     })
 
     // === Textarea- und Figure-Nodes zwischen Sections erzeugen ===
-    // === Text- und Figure-Nodes zwischen Sections erzeugen ===
 
     const usedFigureKeys = new Set<string>()
 
@@ -355,8 +354,8 @@ export function parseLatexToNodesAndEdges(
                         data: {
                             label: 'Figure',
                             image: imgFile.content,   // Base64 bleibt beim Import im Node
-                            imageName: figKey,        // ✅ hier steht jetzt der Key (nicht Dateiname)
-                            refLabel: figKey,         // ✅ damit der Node das auch als RefLabel übernimmt
+                            imageName: figKey,
+                            refLabel: figKey,
                             latexLabel: caption,
                             citations: []
                         },

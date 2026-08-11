@@ -301,7 +301,7 @@ function describeDoc(doc?: DocElement): string {
     case 'figure':
       return doc.latexLabel ?? 'Figure'
     case 'latex':
-      return `∑ ${doc.latex ?? 'LaTeX'}`   // 👈 NEU
+      return `∑ ${doc.latex ?? 'LaTeX'}`
     default:
       const _exhaustiveCheck: never = doc
       return _exhaustiveCheck

@@ -550,13 +550,13 @@ label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #02376b; }
 input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #02376b;   /* passend zu deinem Theme */
+  border: 1px solid #02376b;
   border-radius: 4px;
   box-sizing: border-box;
   text-align: center;
 
-  background: #bce0f7;         /* neue Hintergrundfarbe */
-  color: #02376b;              /* neue Schriftfarbe */
+  background: #bce0f7;
+  color: #02376b;
 }
 
 input::placeholder {

@@ -151,7 +151,7 @@ Title: This creates a Compose node. With it, you can set titles in sections if y
         () => {
             spawnStepNode(
                 500,
-                350,
+                250,
                 `The next step is the LLM dropdown menu.
 
 The following nodes help you refine text:
@@ -172,7 +172,7 @@ If you want to change the output language of the LLM, you can switch from Englis
         () => {
             spawnStepNode(
                 450,
-                350,
+                275,
                 `Now there are just two more nodes to explain in the top bar.
 
 Stickynode is just for your thoughts, reminders, or notes for yourself.
