@@ -1,17 +1,13 @@
 services:
   frontend:
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile.frontend
+    image: fragmentedsynthesis-frontend:latest
     ports:
       - "5173:80"
     depends_on:
       - backend
 
   backend:
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile.backend
+    image: fragmentedsynthesis-backend:latest
     ports:
       - "3000:3000"
     environment:
