@@ -19,8 +19,12 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
+      '/api/auth': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
       '/api/llm': {
-        target: 'http://localhost:1234',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/llm/, '/v1/chat/completions'),
       },

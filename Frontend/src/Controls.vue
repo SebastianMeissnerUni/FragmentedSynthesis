@@ -15,7 +15,6 @@ import FigurePanelContent from "@/Panels/FigurePanelContent.vue";
 import ReferencePanelContent from "@/Panels/ReferencePanelContent.vue";
 import StylePanelContent from "@/Panels/StylePanelContent.vue";
 import SnapshotsPanelContent from "@/Panels/SnapshotsPanelContent.vue";
-import StartupPanelContent from "@/Panels/StartupPanelContent.vue";
 import LlmQueuePanelContent from "@/Panels/LlmQueuePanelContent.vue";
 import {llmBusy} from "@/api/llmQueue.ts";
 import ProfileButton from './components/ProfileButton.vue';
