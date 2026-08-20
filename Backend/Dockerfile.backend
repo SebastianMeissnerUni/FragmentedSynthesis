@@ -11,6 +11,10 @@ RUN npm install
 # Jetzt den Rest kopieren
 COPY . .
 
+# Die SQLite-Datenbank INS Image kopieren
+COPY database.sqlite /app/database.sqlite
+
+
 EXPOSE 3000
 
 CMD ["node", "index.js"]
