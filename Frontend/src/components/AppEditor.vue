@@ -1361,10 +1361,11 @@ defineExpose({
 </template>
 
 <style>
-@import '../../../node_modules/@vue-flow/core/dist/style.css';
-@import '../../../node_modules/@vue-flow/minimap/dist/style.css';
-@import '../../../node_modules/@vue-flow/controls/dist/style.css';
-@import '../main.css';
+@import "@vue-flow/core/dist/style.css";
+@import "@vue-flow/minimap/dist/style.css";
+@import "@vue-flow/controls/dist/style.css";
+@import "../main.css";
+
 
 /* Hintergrundfarbe der MiniMap */
 .vue-flow__minimap {
