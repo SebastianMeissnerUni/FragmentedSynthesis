@@ -1,31 +1,28 @@
 <script setup lang="ts">
-import { inject } from 'vue'
-import { ref, watch, provide, computed, nextTick, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
-import { type Node, type Edge, type Connection, useVueFlow } from '@vue-flow/core'
-import { VueFlow, addEdge } from '@vue-flow/core'
-import { Background } from '@vue-flow/background'
-import { MiniMap } from '@vue-flow/minimap'
+import {inject} from 'vue'
+import {ref, watch, provide, computed, nextTick, onMounted, onUnmounted, onBeforeUnmount} from 'vue'
+import {type Node, type Edge, type Connection, useVueFlow} from '@vue-flow/core'
+import {VueFlow, addEdge} from '@vue-flow/core'
+import {Background} from '@vue-flow/background'
+import {MiniMap} from '@vue-flow/minimap'
 import StartupPanelContent from "@/Panels/StartupPanelContent.vue"
 import SaveRestoreControls from '../Controls.vue'
-import { findNodeTemplate } from '../nodes/templates'
-import type { DocElement, ParagraphElement, FigureElement } from "@/docstructure"
+import {findNodeTemplate} from '../nodes/templates'
+import type {DocElement, ParagraphElement, FigureElement} from "@/docstructure"
 import JSZip from "jszip"
-import { parseLatexToNodesAndEdges } from "@/api/NewLatexParser"
-import { parseOverleafZip } from "@/api/OverleafParser"
-import { useDemo } from "@/api/demo"
-import { v4 as uuid } from "uuid"
-import type { Ref } from 'vue'
+import {parseLatexToNodesAndEdges} from "@/api/NewLatexParser"
+import {parseOverleafZip} from "@/api/OverleafParser"
+import {useDemo} from "@/api/demo"
+import {v4 as uuid} from "uuid"
+import type {Ref} from 'vue'
+import {parseBibtex} from '@/api/bibtex'
 
+const API_URL = import.meta.env.VITE_API_URL
 
 const bibliography = inject<Ref<BibEntry[]>>('bibliography')!
 const updateBibliography = inject<(newBib: BibEntry[]) => void>('updateBibliography')!
 const isLoading = inject<Ref<boolean>>("isLoading")!
 
-
-
-
-
-//Import every node-component:
 import TextAreaNode from './TextAreaNode.vue'
 import TextViewNode from './TextViewNode.vue'
 import ParaphraseNode from './ParaphraseNode.vue'
@@ -37,10 +34,8 @@ import StickyNote from './StickyNote.vue'
 import FigureNode from './FigureNode.vue'
 import TourGuideNode from './TourGuideNode.vue'
 import MagicLatexNode from './MagicLatexNode.vue'
-import { parseBibtex } from '@/api/bibtex'
 
-
-//Interfaces for globally provided data:
+export type Language = 'en' | 'de'
 
 export interface BibEntry {
   id: string
@@ -57,13 +52,12 @@ export interface ImageCacheEntry {
 
 export type ImageCache = Record<string, ImageCacheEntry>
 
-
 export interface Snapshot {
   id: string
   name: string
   createdAt: number
   data: any
-  screenshot?: string // optional, base64 image
+  screenshot?: string
   isAutoSave?: boolean
 }
 
@@ -80,13 +74,10 @@ export interface ZipFileEntry {
   content: string | ArrayBuffer
 }
 
-
 export interface EdgeMouseEvent {
   edge: Edge
   event: MouseEvent
 }
-
-//Globally provided data:
 
 function normalizeImageName(name: string) {
   const parts = name.split(".");
@@ -101,7 +92,6 @@ function normalizeImageName(name: string) {
 
   return `${cleanBase}.${ext?.toLowerCase()}`;
 }
-
 
 function encodeBase64UTF8(str: string): string {
   return btoa(unescape(encodeURIComponent(str)))
@@ -125,8 +115,8 @@ async function refreshFromGit() {
   const repo = currentRepo.value
 
   const res = await fetch(
-      `http://localhost:3000/github/repo-tree?owner=${repo.owner}&repo=${repo.name}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      `${API_URL}/github/repo-tree?owner=${repo.owner}&repo=${repo.name}`,
+      {headers: {Authorization: `Bearer ${token}`}}
   )
 
   const gitFiles = await res.json()
@@ -145,8 +135,6 @@ async function refreshFromGit() {
     if (!node) continue
 
     if (node.data.value !== decoded) {
-      console.log("Aktualisiere aus Git:", file.path)
-
       node.data = {
         ...node.data,
         value: decoded,
@@ -161,7 +149,7 @@ async function refreshFromGit() {
   }
 
   if (changed) {
-    nodes.value = [...nodes.value] // VueFlow rerender
+    nodes.value = [...nodes.value]
   }
   isLoading.value = false
 
@@ -184,18 +172,15 @@ function hardResetEditor() {
 
 const currentRepoFiles = ref<string[]>([])
 
-
 const doc = ref<DocElement[]>([])
 provide("doc", doc)
 
 const imageCache = ref<ImageCache>({})
 provide('imageCache', imageCache)
 
-
 const addParagraphNode = (text: string, filePath: string) => {
   const fileName = filePath.split("/").pop() ?? "Untitled"
 
-  // 1) Doc-Node erzeugen
   const id = crypto.randomUUID()
   const node: ParagraphElement = {
     id,
@@ -208,12 +193,11 @@ const addParagraphNode = (text: string, filePath: string) => {
 
   doc.value.push(node)
 
-  // 2) VueFlow-Node erzeugen
   addNodes([
     {
       id,
       type: "textView",
-      position: { x: 200, y: 200 },
+      position: {x: 200, y: 200},
       data: {
         label: fileName,
         text: text
@@ -221,11 +205,9 @@ const addParagraphNode = (text: string, filePath: string) => {
       dragHandle: ".doc-node__header"
     }
   ])
-  console.log("[AppEditor] ParagraphNode created:", id)
 }
 
 const addFigureNode = (imageUrl: string, filePath: string) => {
-  // Dateiname aus filePath ODER aus der URL extrahieren
   let fileName = filePath?.split("/").pop() ?? null
 
   if (!fileName || !fileName.includes(".")) {
@@ -233,13 +215,12 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
     if (urlName && urlName.includes(".")) {
       fileName = urlName
     } else {
-      fileName = null   // WICHTIG: NICHT "image.png" setzen
+      fileName = null
     }
   }
 
   const id = crypto.randomUUID()
 
-  // Doc-Node (interne Struktur)
   const node: FigureElement = {
     id,
     kind: "figure",
@@ -253,16 +234,15 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
 
   doc.value.push(node)
 
-  // VueFlow-Node (sichtbar im Editor)
   addNodes([
     {
       id,
       type: "figureNode",
-      position: { x: 300, y: 300 },
+      position: {x: 300, y: 300},
       data: {
         image: imageUrl,
         imageName: fileName?.split("/").pop() ?? null,
-        isFromRepo: false,        // WICHTIG: neue Node
+        isFromRepo: false,
         label: fileName ?? "figure",
         refLabel: "fig-" + crypto.randomUUID(),
         latexLabel: (fileName ?? "figure").replace(/\.[^.]+$/, ""),
@@ -271,10 +251,7 @@ const addFigureNode = (imageUrl: string, filePath: string) => {
       dragHandle: ".doc-node__header"
     }
   ])
-
-  console.log("[AppEditor] FigureNode created:", id, fileName)
 }
-
 
 function connectToOutput(nodeId) {
   setEdges((eds) => {
@@ -294,7 +271,6 @@ function connectToOutput(nodeId) {
 
 async function loadEntireRepo(repo) {
   isLoading.value = true
-  console.log("[AppEditor] Lade komplettes Repo:", repo)
 
   hardResetEditor()
   imageCache.value = {}
@@ -302,8 +278,8 @@ async function loadEntireRepo(repo) {
 
   const token = localStorage.getItem("token")
   const res = await fetch(
-      `http://localhost:3000/github/repo-tree?owner=${repo.owner}&repo=${repo.name}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      `${API_URL}/github/repo-tree?owner=${repo.owner}&repo=${repo.name}`,
+      {headers: {Authorization: `Bearer ${token}`}}
   )
 
   const files = await res.json()
@@ -311,29 +287,26 @@ async function loadEntireRepo(repo) {
   currentRepoFiles.value = files.map(f => {
     const lower = f.path.toLowerCase()
 
-    // TEXTDATEIEN → ROH-TEXT als Hash
     if (lower.endsWith(".tex")) {
       return {
         path: f.path,
-        hash: decodeBase64UTF8(f.content) // stabiler Text
+        hash: decodeBase64UTF8(f.content)
       }
     }
 
-    // BILDER → ORIGINAL-BASE64 als Hash
     return {
       path: f.path,
-      hash: f.content           // stabiler Bild-Hash
+      hash: f.content
     }
   })
 
-  const nodes = []
-  const edges = []
+  const nodesArr = []
+  const edgesArr = []
 
-  // Output-Node zuerst
-  nodes.push({
+  nodesArr.push({
     id: "docOutput",
     type: "docOutput",
-    position: { x: 400, y: 100 },
+    position: {x: 400, y: 100},
     data: {
       label: "Document Output",
       json: "[]",
@@ -346,7 +319,6 @@ async function loadEntireRepo(repo) {
     class: "doc-output doc-node"
   })
 
-
   let index = 0
 
   for (const file of files) {
@@ -358,7 +330,6 @@ async function loadEntireRepo(repo) {
       const fullPath = file.path
       const fileName = fullPath.split("/").pop() ?? "Untitled"
 
-      // 1) Doc-Node
       doc.value.push({
         id,
         kind: "paragraph",
@@ -368,11 +339,10 @@ async function loadEntireRepo(repo) {
         sourceNodeId: id
       })
 
-      // 2) VueFlow-Node
-      nodes.push({
+      nodesArr.push({
         id,
         type: "textArea",
-        position: { x: 200, y: 200 },
+        position: {x: 200, y: 200},
         data: {
           label: fullPath,
           value: text,
@@ -385,8 +355,7 @@ async function loadEntireRepo(repo) {
         dragHandle: ".doc-node__header"
       })
 
-      // 3) Edge
-      edges.push({
+      edgesArr.push({
         id: `e-${id}-out`,
         source: id,
         target: "docOutput",
@@ -396,26 +365,22 @@ async function loadEntireRepo(repo) {
       index++
     }
 
-
-
     if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
       const id = uuid()
       const filename = file.path.split("/").pop()
+      const normalizedName = normalizeImageName(filename)
 
-      const normalizedName = normalizeImageName(filename);
-
-      //  Bild in den Cache schreiben
       imageCache.value[normalizedName] = {
         base64: `data:image/png;base64,${file.content}`,
         imageName: normalizedName,
         latexLabel: normalizedName,
         refLabel: normalizedName
-      };
+      }
 
-      nodes.push({
+      nodesArr.push({
         id,
         type: "figureNode",
-        position: { x: 0, y: index * 120 },
+        position: {x: 0, y: index * 120},
         data: {
           kind: "figure",
           type: "figureNode",
@@ -425,9 +390,9 @@ async function loadEntireRepo(repo) {
           image: `data:image/png;base64,${file.content}`,
           isFromRepo: true
         }
-      });
+      })
 
-      edges.push({
+      edgesArr.push({
         id: `e-${id}-out`,
         source: id,
         target: "docOutput",
@@ -437,85 +402,24 @@ async function loadEntireRepo(repo) {
       index++
     }
 
-
     if (lower.endsWith(".bib")) {
       const bibContent = decodeBase64UTF8(file.content)
       const entries = parseBibtex(bibContent)
       bibliography.value.push(...entries)
-
-      console.log("[AppEditor] BibTeX geladen:", entries.length, "Einträge")
     }
-
   }
-  setNodes(nodes)
-  setEdges(edges)
 
-  console.log("[AppEditor] Repo vollständig geladen:", files.length)
+  setNodes(nodesArr)
+  setEdges(edgesArr)
 
   currentRepo.value = {
     owner: repo.owner,
     name: repo.name,
     branch: repo.default_branch ?? "main"
   }
+
   isLoading.value = false
 }
-
-console.log('[AppEditor] setting up editor-open-file listener')
-
-function exportEditorToFiles() {
-  const files = []
-
-  for (const node of nodes.value) {
-
-    // ParagraphNodes → .tex
-    if (node.type === "textArea" || node.type === "textView") {
-
-      // Falls kein Pfad existiert → eindeutigen Pfad erzeugen
-      if (!node.data.path) {
-        node.data.path = `paragraph_${node.id}.tex`
-      }
-
-      const filePath = node.data.path
-
-      const raw = node.data.value ?? node.data.text ?? ""
-
-      files.push({
-        path: filePath,
-        content: encodeBase64UTF8(raw),   // für Git
-        raw,                  // für Vergleich
-      })
-
-
-      continue
-    }
-
-    // FigureNodes → .png
-    if (node.type === "figureNode") {
-
-      const name = node.data.imageName
-      const direct = node.data.image
-      const cached = name && imageCache.value?.[name]?.base64
-
-      if (!direct && !cached) continue
-
-      // Ordner entfernen → nur Dateiname behalten
-      const fileName = name.split("/").pop()
-
-      const src = direct ?? cached
-      const base64 = src.replace(/^data:image\/\w+;base64,/, "")
-
-      files.push({
-        path: fileName,   //  landet IMMER im Root
-        content: base64,
-        hash: base64
-      })
-    }
-
-  }
-
-  return files
-}
-
 
 async function saveCurrentRepoToGit() {
   if (!currentRepo.value) {
@@ -548,8 +452,6 @@ async function saveCurrentRepoToGit() {
 
   const toDelete = repoPaths.filter(p => {
     const lower = p.path.toLowerCase()
-
-    // Nur Dateien löschen, die der Editor verwaltet
     const isManaged = managedExtensions.some(ext => lower.endsWith(ext))
     if (!isManaged) return false
 
@@ -557,31 +459,23 @@ async function saveCurrentRepoToGit() {
     return !editorFiles.find(e => e.path.split("/").pop() === name)
   })
 
-
   const toUpdate = editorFiles.filter(f => {
     const name = f.path.split("/").pop()
     const repoFile = repoByName[name]
     if (!repoFile) return false
 
-    // TEXTDATEIEN
     if (name.endsWith(".tex")) {
       return repoFile.hash !== f.raw
     }
 
-    // BILDER
     return repoFile.hash !== f.content
   })
-
-
-  console.log("DELETE:", toDelete)
-  console.log("CREATE:", toCreate)
-  console.log("UPDATE:", toUpdate)
 
   // DELETE
   for (const file of toDelete) {
     const path = file.path
 
-    await fetch("http://localhost:3000/github/delete-file", {
+    await fetch(`${API_URL}/github/delete-file`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -600,7 +494,7 @@ async function saveCurrentRepoToGit() {
     const fileName = file.path.split("/").pop()
     const originalPath = findOriginalPath(fileName, repoPaths)
 
-    await fetch("http://localhost:3000/github/create-file", {
+    await fetch(`${API_URL}/github/create-file`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -623,14 +517,13 @@ async function saveCurrentRepoToGit() {
     const repoFile = repoPaths.find(r => r.path.endsWith("/" + fileName))
 
     if (repoFile && repoFile.hash === file.raw) {
-      console.log("UNCHANGED → skip update:", fileName)
       continue
     }
 
     const isImage = /\.(png|jpg|jpeg)$/i.test(fileName)
 
     if (isImage) {
-      await fetch("http://localhost:3000/github/update-image", {
+      await fetch(`${API_URL}/github/update-image`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -644,7 +537,7 @@ async function saveCurrentRepoToGit() {
         })
       })
     } else {
-      await fetch("http://localhost:3000/github/save-text", {
+      await fetch(`${API_URL}/github/save-text`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -655,8 +548,7 @@ async function saveCurrentRepoToGit() {
           repo: currentRepo.value.name,
           path: originalPath,
           content: file.content
-
-    })
+        })
       })
     }
   }
@@ -666,7 +558,6 @@ async function saveCurrentRepoToGit() {
   currentRepoFiles.value = editorFiles.map(f => {
     const name = f.path.split("/").pop()
 
-    // TEXTDATEIEN
     if (name.endsWith(".tex")) {
       return {
         path: f.path,
@@ -674,33 +565,31 @@ async function saveCurrentRepoToGit() {
       }
     }
 
-    // BILDER
     return {
       path: f.path,
       hash: f.content
     }
   })
+
   isLoading.value = false
 }
 
-
-  async function createNewRepository() {
+async function createNewRepository() {
   const name = prompt("Name des neuen Repositories:")
   if (!name) return
 
+  isLoading.value = true
 
-    isLoading.value = true
   const token = localStorage.getItem("token")
   const githubUsername = localStorage.getItem("github_username")
 
-  // 1) Repo erstellen
-  const res = await fetch("http://localhost:3000/github/create-repo", {
+  const res = await fetch(`${API_URL}/github/create-repo`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify({ name })
+    body: JSON.stringify({name})
   })
 
   if (!res.ok) {
@@ -708,23 +597,18 @@ async function saveCurrentRepoToGit() {
     return
   }
 
-  // 2) Repo-Infos setzen
   currentRepo.value = {
     owner: githubUsername,
     name: name,
     branch: "main"
   }
 
-
-  // 3) Repo ist leer → keine Dateien
   currentRepoFiles.value = []
 
-  // 4) Editor-Dateien exportieren
   const editorFiles = exportEditorToFiles()
 
-  // 5) Alle Dateien ins neue Repo hochladen
   for (const file of editorFiles) {
-    await fetch("http://localhost:3000/github/create-file", {
+    await fetch(`${API_URL}/github/create-file`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -739,59 +623,22 @@ async function saveCurrentRepoToGit() {
     })
   }
 
-  // 6) Editor-Repo-Dateiliste aktualisieren
   currentRepoFiles.value = editorFiles.map(f => f.path)
 
-    isLoading.value = false
+  isLoading.value = false
 
   alert("Repository erfolgreich erstellt und Dateien hochgeladen!")
-
 }
-
-
-
-onMounted(() => {
-  window.addEventListener("editor-git-action", onGitAction)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener("editor-git-action", onGitAction)
-})
-
-async function onGitAction(e: CustomEvent) {
-  const action = e.detail
-
-  if (action === "save-to-git") {
-    await saveCurrentRepoToGit()
-  }
-
-  if (action === "create-repo") {
-    await createNewRepository()
-  }
-
-  if (action === "refresh-from-git") {
-    await refreshFromGit()
-  }
-}
-
 
 window.addEventListener("editor-open-file", async (e: any) => {
-  console.log('[AppEditor] editor-open-file received:', e.detail)
-
   const file = e.detail
   const token = localStorage.getItem("token")
 
-  if (!token) {
-    console.warn('[AppEditor] no token, aborting')
-    return
-  }
+  if (!token) return
 
-  // -------------------------
-  // TEXTDATEIEN
-  // -------------------------
   if (file.type === "txt") {
     const res = await fetch(
-        `http://localhost:3000/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
+        `${API_URL}/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
         { headers: { Authorization: `Bearer ${token}` } }
     )
     const data = await res.json()
@@ -799,20 +646,15 @@ window.addEventListener("editor-open-file", async (e: any) => {
     return
   }
 
-  // -------------------------
-  // ÖFFENTLICHE BILDER
-  // -------------------------
   if (file.type === "public-image") {
     addFigureNode(file.url, file.path)
     return
   }
 
-  // -------------------------
   // PRIVATE BILDER
-  // -------------------------
   if (file.type === "private-image") {
     const res = await fetch(
-        `http://localhost:3000/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
+        `${API_URL}/github/file?owner=${file.repo.owner.login}&repo=${file.repo.name}&path=${file.path}`,
         { headers: { Authorization: `Bearer ${token}` } }
     )
     const data = await res.json()
@@ -820,464 +662,462 @@ window.addEventListener("editor-open-file", async (e: any) => {
     addFigureNode(base64Url, file.path)
     return
   }
+
+  console.log("[AppEditor] setting up upload listeners")
 })
 
 
-console.log("[AppEditor] setting up upload listeners")
-
 // JSON IMPORT
-window.addEventListener("editor-load-json", (e: any) => {
-  console.log("[AppEditor] editor-load-json received")
+  window.addEventListener("editor-load-json", (e: any) => {
+    console.log("[AppEditor] editor-load-json received")
 
-  try {
-    const json = JSON.parse(e.detail)
-    if (!json.nodes || !json.edges) {
-      console.warn("[AppEditor] invalid JSON format")
+    try {
+      const json = JSON.parse(e.detail)
+      if (!json.nodes || !json.edges) {
+        console.warn("[AppEditor] invalid JSON format")
+        return
+      }
+
+      nodes.value = json.nodes
+      edges.value = json.edges
+      doc.value = json.doc ?? []
+
+      console.log("[AppEditor] JSON loaded:", nodes.value.length, "nodes")
+    } catch (err) {
+      console.error("[AppEditor] JSON parse error", err)
+    }
+  })
+
+  window.addEventListener("editor-load-zip", async (e: any) => {
+    console.log("[AppEditor] editor-load-zip received:", e.detail)
+    const file = e.detail as File
+
+    const arrayBuffer = await file.arrayBuffer()
+    const zip = await JSZip.loadAsync(arrayBuffer)
+
+    const files: any[] = []
+
+    for (const entry of Object.values(zip.files)) {
+      if (entry.dir) continue
+
+      if (entry.name.endsWith(".tex")) {
+        files.push({
+          path: entry.name,
+          type: "tex",
+          content: await entry.async("string")
+        })
+      } else if (entry.name.endsWith(".bib")) {
+        files.push({
+          path: entry.name,
+          type: "bib",
+          content: await entry.async("string")
+        })
+      } else if (/\.(png|jpe?g|gif|svg|pdf)$/i.test(entry.name)) {
+        const base64 = await entry.async("base64")
+        const ext = entry.name.split(".").pop() || "png"
+        files.push({
+          path: entry.name,
+          type: "image",
+          content: `data:image/${ext};base64,${base64}`
+        })
+      } else {
+        files.push({
+          path: entry.name,
+          type: "other",
+          content: await entry.async("string")
+        })
+      }
+    }
+
+    const mainTex = files.find(f => f.path.endsWith("main.tex"))?.path
+    if (!mainTex) {
+      console.warn("[AppEditor] No main.tex found in ZIP")
       return
     }
 
-    nodes.value = json.nodes
-    edges.value = json.edges
-    doc.value = json.doc ?? []
-
-    console.log("[AppEditor] JSON loaded:", nodes.value.length, "nodes")
-  } catch (err) {
-    console.error("[AppEditor] JSON parse error", err)
-  }
-})
-
-window.addEventListener("editor-load-zip", async (e: any) => {
-  console.log("[AppEditor] editor-load-zip received:", e.detail)
-  const file = e.detail as File
-
-  const arrayBuffer = await file.arrayBuffer()
-  const zip = await JSZip.loadAsync(arrayBuffer)
-
-  const files: any[] = []
-
-  for (const entry of Object.values(zip.files)) {
-    if (entry.dir) continue
-
-    if (entry.name.endsWith(".tex")) {
-      files.push({
-        path: entry.name,
-        type: "tex",
-        content: await entry.async("string")
-      })
-    } else if (entry.name.endsWith(".bib")) {
-      files.push({
-        path: entry.name,
-        type: "bib",
-        content: await entry.async("string")
-      })
-    } else if (/\.(png|jpe?g|gif|svg|pdf)$/i.test(entry.name)) {
-      const base64 = await entry.async("base64")
-      const ext = entry.name.split(".").pop() || "png"
-      files.push({
-        path: entry.name,
-        type: "image",
-        content: `data:image/${ext};base64,${base64}`
-      })
-    } else {
-      files.push({
-        path: entry.name,
-        type: "other",
-        content: await entry.async("string")
-      })
+    let parsed
+    try {
+      parsed = parseOverleafZip(files, mainTex, imageCache)
+    } catch (err) {
+      console.error("[AppEditor] ZIP parsing failed:", err)
+      return
     }
-  }
 
-  const mainTex = files.find(f => f.path.endsWith("main.tex"))?.path
-  if (!mainTex) {
-    console.warn("[AppEditor] No main.tex found in ZIP")
-    return
-  }
-
-  let parsed
-  try {
-    parsed = parseOverleafZip(files, mainTex, imageCache)
-  } catch (err) {
-    console.error("[AppEditor] ZIP parsing failed:", err)
-    return
-  }
-
-  nodes.value = parsed.nodes
-  edges.value = parsed.edges
-  doc.value = parsed.doc ?? []
+    nodes.value = parsed.nodes
+    edges.value = parsed.edges
+    doc.value = parsed.doc ?? []
 
 
-  console.log("[AppEditor] VueFlow nodes after assignment:", nodes.value)
-  console.log("[AppEditor] ZIP import complete:", nodes.value.length, "nodes")
-})
-
+    console.log("[AppEditor] VueFlow nodes after assignment:", nodes.value)
+    console.log("[AppEditor] ZIP import complete:", nodes.value.length, "nodes")
+  })
 
 
 // START EMPTY PROJECT
-window.addEventListener("editor-start-empty", () => {
-  console.log("[AppEditor] editor-start-empty received")
+  window.addEventListener("editor-start-empty", () => {
+    console.log("[AppEditor] editor-start-empty received")
 
-  nodes.value = []
-  edges.value = []
-  doc.value = []
+    nodes.value = []
+    edges.value = []
+    doc.value = []
 
-  console.log("[AppEditor] Editor cleared")
-})
-
-// START DEMO
-window.addEventListener("editor-start-demo", () => {
-  console.log("[AppEditor] editor-start-demo received")
-
-  demoActive.value = true
-
-  if (typeof startDemo === "function") {
-    startDemo()
-  } else {
-    console.warn("[AppEditor] startDemo() not found")
-  }
-})
-
-window.addEventListener("editor-git-action", async (e: any) => {
-  const action = e.detail
-
-  switch (action) {
-    case "save-text":
-      await saveCurrentText()
-      break
-
-    case "upload-image":
-      await uploadImageFile()
-      break
-
-    case "update-image":
-      await updateCurrentImage()
-      break
-
-    case "create-file":
-      await createNewFile()
-      break
-
-    case "delete-file":
-      await deleteCurrentFile()
-      break
-  }
-})
-
-
-
-const snapshots = ref<Snapshot[]>([])
-provide('snapshots', snapshots)
-
-export type Language = 'en' | 'de'
-const language = ref<Language>('en')
-provide('language', language)
-
-const nodes = ref<Node[]>([])
-const edges = ref<Edge[]>([])
-provide('nodes', nodes)
-provide('edges', edges)
-
-const TLDR = ref(false)
-provide('TLDR', TLDR)
-
-const demoActive = ref(false)
-provide('demoActive', demoActive)
-
-const templates = ref([])
-
-provide('styleTemplates', templates)
-provide('setStyleTemplates', (newList) => {
-  templates.value = newList
-})
-
-const snapshotInProgress = ref(false)
-provide('snapshotInProgress', snapshotInProgress)
-
-const designMode = ref<'standard' | 'disco'>('standard')
-provide('designMode', designMode)
-let discoInterval: number | undefined
-
-
-const {
-  addNodes,
-  setNodes,
-  setEdges,
-  updateEdge,
-  addEdges,
-  screenToFlowCoordinate,
-  dimensions
-} = useVueFlow()
-
-
-const {
-  startDemo,
-  nextStep,
-  skipDemo
-} = useDemo({
-  demoActive,
-  nodes,
-  setNodes,
-  setEdges,
-  addNodes,
-  screenToFlowCoordinate,
-  dimensions
-})
-
-
-const edgeMenu = ref<{
-  visible: boolean
-  x: number
-  y: number
-  edge: Edge | null
-}>({
-  visible: false,
-  x: 0,
-  y: 0,
-  edge: null,
-})
-
-
-let nodeCounter = 0
-
-const allowedSourceTypes = ['textArea', 'grammar', 'paraphrase', 'edit']
-
-const canInsertNodes = computed(() => {
-  if (!edgeMenu.value.edge) return false
-  const sourceNode = nodes.value.find(n => n.id === edgeMenu.value.edge!.source)
-  if (!sourceNode) return false
-  return allowedSourceTypes.includes(sourceNode.type)
-})
-
-
-function onEdgeClick(event: EdgeMouseEvent) {
-  event.event.stopPropagation() // das eigentliche MouseEvent
-  const edge = event.edge
-
-  edgeMenu.value = {
-    visible: true,
-    x: event.event.clientX,
-    y: event.event.clientY,
-    edge,
-  }
-}
-
-function closeEdgeMenu() {
-  edgeMenu.value.visible = false
-}
-
-
-function onConnect(connection: Connection) {
-  edges.value = addEdge(
-      {
-        ...connection,
-        animated: true,
-        style: { strokeWidth: 4 },
-        interactionWidth: 20,
-        markerEnd: { type: 'arrowclosed', color: '#000000', width: 6, height: 6,},
-      },
-      edges.value
-  ) as Edge[]
-}
-
-
-function onDrop(event: DragEvent) {
-  const type = event.dataTransfer?.getData('node/type')
-  if (!type) return
-
-  const template = findNodeTemplate(type)
-  if (!template) return
-
-  nodeCounter++
-  const id = `node-${nodeCounter}`
-  const baseLabel = template?.label ?? `Node ${id}`
-
-  // Copy template data so the original definition stays unchanged.
-  const data: Node['data'] =
-      template?.data && typeof template.data === 'object'
-          ? { ...template.data }
-          : { label: baseLabel }
-
-  // Guarantee that the node shows a label if the template forgot to set one.
-  if (data && typeof data === 'object' && !('label' in data)) {
-    ;(data as Record<string, unknown>).label = baseLabel
-  }
-
-  const position = screenToFlowCoordinate({
-    x: event.clientX,
-    y: event.clientY,
+    console.log("[AppEditor] Editor cleared")
   })
 
-  const newNode: Node = {
-    id: `${template?.type ?? 'node'}-${id}`,
-    type: template?.type,
-    position,
-    data,
-    dragHandle: '.doc-node__header'
+// START DEMO
+  window.addEventListener("editor-start-demo", () => {
+    console.log("[AppEditor] editor-start-demo received")
+
+    demoActive.value = true
+
+    if (typeof startDemo === "function") {
+      startDemo()
+    } else {
+      console.warn("[AppEditor] startDemo() not found")
+    }
+  })
+
+  window.addEventListener("editor-git-action", async (e: any) => {
+    const action = e.detail
+
+    switch (action) {
+      case "save-text":
+        await saveCurrentText()
+        break
+
+      case "upload-image":
+        await uploadImageFile()
+        break
+
+      case "update-image":
+        await updateCurrentImage()
+        break
+
+      case "create-file":
+        await createNewFile()
+        break
+
+      case "delete-file":
+        await deleteCurrentFile()
+        break
+    }
+  })
+
+
+  const snapshots = ref<Snapshot[]>([])
+  provide('snapshots', snapshots)
+
+
+  const language = ref<Language>('en')
+  provide('language', language)
+
+  const nodes = ref<Node[]>([])
+  const edges = ref<Edge[]>([])
+  provide('nodes', nodes)
+  provide('edges', edges)
+
+  const TLDR = ref(false)
+  provide('TLDR', TLDR)
+
+  const demoActive = ref(false)
+  provide('demoActive', demoActive)
+
+  const templates = ref([])
+
+  provide('styleTemplates', templates)
+  provide('setStyleTemplates', (newList) => {
+    templates.value = newList
+  })
+
+  const snapshotInProgress = ref(false)
+  provide('snapshotInProgress', snapshotInProgress)
+
+  const designMode = ref<'standard' | 'disco'>('standard')
+  provide('designMode', designMode)
+  let discoInterval: number | undefined
+
+
+  const {
+    addNodes,
+    setNodes,
+    setEdges,
+    updateEdge,
+    addEdges,
+    screenToFlowCoordinate,
+    dimensions
+  } = useVueFlow()
+
+
+  const {
+    startDemo,
+    nextStep,
+    skipDemo
+  } = useDemo({
+    demoActive,
+    nodes,
+    setNodes,
+    setEdges,
+    addNodes,
+    screenToFlowCoordinate,
+    dimensions
+  })
+
+
+  const edgeMenu = ref<{
+    visible: boolean
+    x: number
+    y: number
+    edge: Edge | null
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    edge: null,
+  })
+
+
+  let nodeCounter = 0
+
+  const allowedSourceTypes = ['textArea', 'grammar', 'paraphrase', 'edit']
+
+  const canInsertNodes = computed(() => {
+    if (!edgeMenu.value.edge) return false
+    const sourceNode = nodes.value.find(n => n.id === edgeMenu.value.edge!.source)
+    if (!sourceNode) return false
+    return allowedSourceTypes.includes(sourceNode.type)
+  })
+
+
+  function onEdgeClick(event: EdgeMouseEvent) {
+    event.event.stopPropagation() // das eigentliche MouseEvent
+    const edge = event.edge
+
+    edgeMenu.value = {
+      visible: true,
+      x: event.event.clientX,
+      y: event.event.clientY,
+      edge,
+    }
   }
-  addNodes([newNode])
-}
+
+  function closeEdgeMenu() {
+    edgeMenu.value.visible = false
+  }
 
 
-function onEdgeUpdate({ edge, connection }) {
-  updateEdge(edge, connection)
-}
-
-function deleteEdge() {
-  if (!edgeMenu.value.edge) return
-
-  edges.value = edges.value.filter(
-      e => e.id !== edgeMenu.value.edge!.id
-  )
-  closeEdgeMenu()
-}
-
-
-function insertNodeOnEdge(templateType: string) {
-  if (!edgeMenu.value.edge) return;
-  const edge = edgeMenu.value.edge;
-
-  const template = findNodeTemplate(templateType);
-  if (!template) return;
-
-  const sourceNode = nodes.value.find(n => n.id === edge.source);
-  const targetNode = nodes.value.find(n => n.id === edge.target);
-  if (!sourceNode || !targetNode) return;
-
-  // Mittige Position zwischen Source und Target
-  const newX = (sourceNode.position.x + targetNode.position.x) / 2;
-  const newY = (sourceNode.position.y + targetNode.position.y) / 2;
-
-  // Neue Node-ID
-  nodeCounter++;
-  const newNodeId = `node-${nodeCounter}`;
-
-  // Node aus Template kopieren
-  const newNode: Node = {
-    id: newNodeId,
-    type: template.type,
-    position: { x: newX, y: newY },
-    data: template.data ? { ...template.data } : { label: template.label },
-    dragHandle: '.doc-node__header'
-  };
-
-  addNodes([newNode]);
-
-  // Alte Edge löschen
-  edges.value = edges.value.filter(e => e.id !== edge.id);
-
-  // Default Handles definieren
-
-  const oldSourceHandle = edge.sourceHandle ?? 'output';
-  const oldTargetHandle = edge.targetHandle ?? 'input';
-
-  // Neue Edges erstellen
-  const newEdges: Edge[] = [
-    {
-      id: `edge-${edge.source}-${newNodeId}-${Date.now()}`,
-      source: edge.source,
-      target: newNodeId,
-      sourceHandle: oldSourceHandle,
-      targetHandle: 'input', // neuer Node erhält 'input'
-      animated: true,
-      style: { strokeWidth: 4 },
-      markerEnd: { type: 'arrowclosed', color: '#000', width: 6, height: 6 },
-    },
-    {
-      id: `edge-${newNodeId}-${edge.target}-${Date.now()}`,
-      source: newNodeId,
-      target: edge.target,
-      sourceHandle: 'output',   // neuer Node liefert an alte Edge
-      targetHandle: oldTargetHandle,
-      animated: true,
-      style: { strokeWidth: 4 },
-      markerEnd: { type: 'arrowclosed', color: '#000', width: 6, height: 6 },
-    },
-  ];
-
-
-  edges.value.push(...newEdges);
-
-  closeEdgeMenu();
-}
-
-function startDiscoEdges() {
-  // Sicherheit: kein doppeltes Interval
-  if (discoInterval) return
-
-  discoInterval = window.setInterval(() => {
-    edges.value = edges.value.map(edge => {
-      const hue = Math.floor(Math.random() * 360)
-      const color = `hsl(${hue}, 100%, 50%)`
-
-      return {
-        ...edge,
-        style: {
-          ...(edge.style ?? {}),
-          stroke: color,
-          strokeWidth: 4,
-          transition: 'stroke 0.4s linear',
+  function onConnect(connection: Connection) {
+    edges.value = addEdge(
+        {
+          ...connection,
+          animated: true,
+          style: {strokeWidth: 4},
+          interactionWidth: 20,
+          markerEnd: {type: 'arrowclosed', color: '#000000', width: 6, height: 6,},
         },
-        markerEnd: {
-          ...(edge.markerEnd ?? {}),
-          color,
-        },
-      }
+        edges.value
+    ) as Edge[]
+  }
+
+
+  function onDrop(event: DragEvent) {
+    const type = event.dataTransfer?.getData('node/type')
+    if (!type) return
+
+    const template = findNodeTemplate(type)
+    if (!template) return
+
+    nodeCounter++
+    const id = `node-${nodeCounter}`
+    const baseLabel = template?.label ?? `Node ${id}`
+
+    // Copy template data so the original definition stays unchanged.
+    const data: Node['data'] =
+        template?.data && typeof template.data === 'object'
+            ? {...template.data}
+            : {label: baseLabel}
+
+    // Guarantee that the node shows a label if the template forgot to set one.
+    if (data && typeof data === 'object' && !('label' in data)) {
+      ;(data as Record<string, unknown>).label = baseLabel
+    }
+
+    const position = screenToFlowCoordinate({
+      x: event.clientX,
+      y: event.clientY,
     })
-  }, 400) // 🎛️ Tempo (300–600ms fühlt sich gut an)
-}
+
+    const newNode: Node = {
+      id: `${template?.type ?? 'node'}-${id}`,
+      type: template?.type,
+      position,
+      data,
+      dragHandle: '.doc-node__header'
+    }
+    addNodes([newNode])
+  }
 
 
-function stopDiscoEdges() {
-  if (!discoInterval) return
+  function onEdgeUpdate({edge, connection}) {
+    updateEdge(edge, connection)
+  }
 
-  clearInterval(discoInterval)
-  discoInterval = undefined
+  function deleteEdge() {
+    if (!edgeMenu.value.edge) return
 
-  edges.value = edges.value.map(edge => ({
-    ...edge,
-    animated: true,
-    interactionWidth: 20,
-    style: {
-      strokeWidth: 4
-      ,
-    },
-    markerEnd: { type: 'arrowclosed', color: '#000', width: 6, height: 6 },
-  }))
-}
+    edges.value = edges.value.filter(
+        e => e.id !== edgeMenu.value.edge!.id
+    )
+    closeEdgeMenu()
+  }
+
+
+  function insertNodeOnEdge(templateType: string) {
+    if (!edgeMenu.value.edge) return;
+    const edge = edgeMenu.value.edge;
+
+    const template = findNodeTemplate(templateType);
+    if (!template) return;
+
+    const sourceNode = nodes.value.find(n => n.id === edge.source);
+    const targetNode = nodes.value.find(n => n.id === edge.target);
+    if (!sourceNode || !targetNode) return;
+
+    // Mittige Position zwischen Source und Target
+    const newX = (sourceNode.position.x + targetNode.position.x) / 2;
+    const newY = (sourceNode.position.y + targetNode.position.y) / 2;
+
+    // Neue Node-ID
+    nodeCounter++;
+    const newNodeId = `node-${nodeCounter}`;
+
+    // Node aus Template kopieren
+    const newNode: Node = {
+      id: newNodeId,
+      type: template.type,
+      position: {x: newX, y: newY},
+      data: template.data ? {...template.data} : {label: template.label},
+      dragHandle: '.doc-node__header'
+    };
+
+    addNodes([newNode]);
+
+    // Alte Edge löschen
+    edges.value = edges.value.filter(e => e.id !== edge.id);
+
+    // Default Handles definieren
+
+    const oldSourceHandle = edge.sourceHandle ?? 'output';
+    const oldTargetHandle = edge.targetHandle ?? 'input';
+
+    // Neue Edges erstellen
+    const newEdges: Edge[] = [
+      {
+        id: `edge-${edge.source}-${newNodeId}-${Date.now()}`,
+        source: edge.source,
+        target: newNodeId,
+        sourceHandle: oldSourceHandle,
+        targetHandle: 'input', // neuer Node erhält 'input'
+        animated: true,
+        style: {strokeWidth: 4},
+        markerEnd: {type: 'arrowclosed', color: '#000', width: 6, height: 6},
+      },
+      {
+        id: `edge-${newNodeId}-${edge.target}-${Date.now()}`,
+        source: newNodeId,
+        target: edge.target,
+        sourceHandle: 'output',   // neuer Node liefert an alte Edge
+        targetHandle: oldTargetHandle,
+        animated: true,
+        style: {strokeWidth: 4},
+        markerEnd: {type: 'arrowclosed', color: '#000', width: 6, height: 6},
+      },
+    ];
+
+
+    edges.value.push(...newEdges);
+
+    closeEdgeMenu();
+  }
+
+  function startDiscoEdges() {
+    // Sicherheit: kein doppeltes Interval
+    if (discoInterval) return
+
+    discoInterval = window.setInterval(() => {
+      edges.value = edges.value.map(edge => {
+        const hue = Math.floor(Math.random() * 360)
+        const color = `hsl(${hue}, 100%, 50%)`
+
+        return {
+          ...edge,
+          style: {
+            ...(edge.style ?? {}),
+            stroke: color,
+            strokeWidth: 4,
+            transition: 'stroke 0.4s linear',
+          },
+          markerEnd: {
+            ...(edge.markerEnd ?? {}),
+            color,
+          },
+        }
+      })
+    }, 400) // 🎛️ Tempo (300–600ms fühlt sich gut an)
+  }
+
+
+  function stopDiscoEdges() {
+    if (!discoInterval) return
+
+    clearInterval(discoInterval)
+    discoInterval = undefined
+
+    edges.value = edges.value.map(edge => ({
+      ...edge,
+      animated: true,
+      interactionWidth: 20,
+      style: {
+        strokeWidth: 4
+        ,
+      },
+      markerEnd: {type: 'arrowclosed', color: '#000', width: 6, height: 6},
+    }))
+  }
 
 // Sucht im Speicher nach der Mail, sonst Standardtext
-const userEmail = ref(localStorage.getItem('userEmail') || 'Nicht angemeldet');
+  const userEmail = ref(localStorage.getItem('userEmail') || 'Nicht angemeldet');
 
 // Stellt die Variable für alle anderen Komponenten (wie Profile.vue) bereit
-provide('userEmail', userEmail);
+  provide('userEmail', userEmail);
 
 
-watch(() => nodes.value
-        .filter(n => n.type === 'figureNode')
-        .map(n => n.data?.refLabel)
-        .filter(Boolean),
-    (newLabels) => {
-      const usedRefLabels = new Set(newLabels)
-    })
+  watch(() => nodes.value
+          .filter(n => n.type === 'figureNode')
+          .map(n => n.data?.refLabel)
+          .filter(Boolean),
+      (newLabels) => {
+        const usedRefLabels = new Set(newLabels)
+      })
 
 
-watch(designMode, (mode) => {
-  if (mode === 'disco') {
-    startDiscoEdges()
-  } else {
-    stopDiscoEdges()
-  }
-})
+  watch(designMode, (mode) => {
+    if (mode === 'disco') {
+      startDiscoEdges()
+    } else {
+      stopDiscoEdges()
+    }
+  })
 
-onUnmounted(() => {
-  if (discoInterval) {
-    clearInterval(discoInterval)
-  }
-})
+  onUnmounted(() => {
+    if (discoInterval) {
+      clearInterval(discoInterval)
+    }
+  })
 
 
-defineExpose({
-  loadEntireRepo
-})
+  defineExpose({
+    loadEntireRepo
+  })
 
 
 </script>

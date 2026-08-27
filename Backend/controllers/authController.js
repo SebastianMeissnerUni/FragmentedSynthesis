@@ -123,8 +123,6 @@ exports.githubCallback = async (req, res) => {
             { headers: { Accept: "application/json" } }
         );
 
-        console.log("TOKEN RESPONSE RAW:", tokenResponse.data);
-
         const accessToken = tokenResponse.data.access_token;
 
         const userResponse = await axios.get("https://api.github.com/user", {
@@ -167,7 +165,7 @@ exports.githubLoginOrRegister = (githubUser, res, githubAccessToken) => {
         const token = jwt.sign({ id: user.id }, "SECRET123", { expiresIn: "6h" });
 
         return res.redirect(
-            `http://localhost:5173/login-success?token=${token}&github_username=${githubUser.github_username}`
+            `${process.env.FRONTEND_URL}/login-success?token=${token}&github_username=${githubUser.github_username}`
         );
     }
 
@@ -189,7 +187,7 @@ exports.githubLoginOrRegister = (githubUser, res, githubAccessToken) => {
     const token = jwt.sign({ id: result.lastInsertRowid }, "SECRET123", { expiresIn: "6h" });
 
     return res.redirect(
-        `http://localhost:5173/login-success?token=${token}&github_username=${githubUser.github_username}`
+        `${process.env.FRONTEND_URL}/login-success?token=${token}&github_username=${githubUser.github_username}`
     );
 };
 

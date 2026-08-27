@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { inject } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface GitHubRepo {
   id: number
   name: string
@@ -21,9 +23,6 @@ const repoFiles = ref<Record<number, any[]>>({})
 const folderOpen = ref<Record<string, boolean>>({})
 const emit = defineEmits(['close'])
 
-
-
-
 const toggleFolder = (path: string) => {
   folderOpen.value[path] = !folderOpen.value[path]
 }
@@ -32,13 +31,12 @@ async function loadRepoFilesRecursively(repo: GitHubRepo, path = '') {
   const token = localStorage.getItem("token")
 
   const res = await fetch(
-      `http://localhost:3000/github/repo-files?owner=${repo.owner.login}&repo=${repo.name}&path=${path}`,
+      `${API_URL}/github/repo-files?owner=${repo.owner.login}&repo=${repo.name}&path=${path}`,
       { headers: { Authorization: `Bearer ${token}` } }
   )
 
   const items = await res.json()
 
-  // Für jeden Ordner: Kinder laden
   return await Promise.all(
       items.map(async (item: any) => {
         if (item.type === "dir") {
@@ -54,7 +52,7 @@ async function deleteFile(repo, path) {
   const ok = confirm(`Soll "${path}" wirklich gelöscht werden?`)
   if (!ok) return
 
-  await fetch("http://localhost:3000/github/delete-file", {
+  await fetch(`${API_URL}/github/delete-file`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -71,15 +69,13 @@ async function deleteFile(repo, path) {
   await loadRepoFiles(repo)
 }
 
-
-
 async function createFileInFolder(repo, folderPath) {
   const name = prompt("Dateiname (z.B. notes.txt):")
   if (!name) return
 
   const base64 = btoa("Neue Datei")
 
-  await fetch("http://localhost:3000/github/create-file", {
+  await fetch(`${API_URL}/github/create-file`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -97,8 +93,6 @@ async function createFileInFolder(repo, folderPath) {
   await loadRepoFiles(repo)
 }
 
-
-
 async function uploadToFolder(repo, folderPath) {
   const input = document.createElement("input")
   input.type = "file"
@@ -109,7 +103,7 @@ async function uploadToFolder(repo, folderPath) {
 
     const base64 = await fileToBase64(file)
 
-    await fetch("http://localhost:3000/github/upload-image", {
+    await fetch(`${API_URL}/github/upload-image`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -134,7 +128,6 @@ async function loadRepoFiles(repo: GitHubRepo) {
   repoFiles.value[repo.id] = await loadRepoFilesRecursively(repo)
 }
 
-
 function fileToBase64(file) {
   return new Promise(resolve => {
     const reader = new FileReader()
@@ -142,7 +135,6 @@ function fileToBase64(file) {
     reader.readAsDataURL(file)
   })
 }
-
 
 const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
   console.log('[Profile] openFile clicked:', { filePath, fileType })
@@ -156,14 +148,12 @@ const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
 
   if (fileType === "file") {
     if (lower.endsWith(".tex")) {
-      console.log('[Profile] calling openInEditor for TEX')
       openInEditor({ type: "txt", path: filePath, repo })
     }
     if (lower.endsWith(".png")) {
       const isPublic = !repo.private
 
       if (isPublic) {
-        // Öffentliche Repos
         const url = `https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/main/${filePath}`
         openInEditor({
           type: "public-image",
@@ -172,7 +162,6 @@ const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
           repo
         })
       } else {
-        // Private Repos
         openInEditor({
           type: "private-image",
           path: filePath,
@@ -183,7 +172,6 @@ const openFile = (repo: GitHubRepo, filePath: string, fileType: string) => {
     }
   }
 }
-
 
 const toggleRepo = async (repo: GitHubRepo) => {
   repoOpen.value[repo.id] = !repoOpen.value[repo.id]
@@ -196,36 +184,29 @@ const toggleRepo = async (repo: GitHubRepo) => {
 }
 
 onMounted(async () => {
-
   const token = localStorage.getItem('token')
   if (!token) return
 
-  // --- 1) Userdaten laden ---
-  const res = await fetch("http://localhost:3000/auth/me", {
+  const res = await fetch(`${API_URL}/auth/me`, {
     headers: { "Authorization": `Bearer ${token}` }
   })
 
-  
   const data = await res.json()
 
   if (res.ok) {
     userEmail.value = data.email
   }
 
-  // --- 2) Lokale Projekte laden ---
-  const projRes = await fetch("http://localhost:3000/projects/list", {
+  const projRes = await fetch(`${API_URL}/projects/list`, {
     headers: { "Authorization": `Bearer ${token}` }
   })
   localProjects.value = await projRes.json()
 
-
-  // --- 3) GitHub Repositories laden ---
-  const ghRes = await fetch("http://localhost:3000/github/repos", {
+  const ghRes = await fetch(`${API_URL}/github/repos`, {
     headers: { "Authorization": `Bearer ${token}` }
   })
   githubRepos.value = await ghRes.json()
 })
-
 
 const passwords = ref({
   old: '',
@@ -234,28 +215,25 @@ const passwords = ref({
 })
 
 const handlePasswordChange = async () => {
-  // 1. Check: Felder leer?
   if (!passwords.value.old || !passwords.value.new || !passwords.value.confirm) {
     message.value = { text: 'Bitte alle Felder ausfüllen!', type: 'error' };
     return;
   }
 
-  // 2. Check: Neue Passwörter gleich?
   if (passwords.value.new !== passwords.value.confirm) {
     message.value = { text: 'Die neuen Passwörter stimmen nicht überein!', type: 'error' };
     return;
   }
 
   try {
-    // JETZT DER API-CALL (wie bei Login):
-    const res = await fetch("http://localhost:3000/auth/change-password", {
+    const res = await fetch(`${API_URL}/auth/change-password`, {
       method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem('token')}`
-          },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem('token')}`
+      },
       body: JSON.stringify({
-        email: userEmail.value, // Die E-Mail von inject()
+        email: userEmail.value,
         oldPassword: passwords.value.old,
         newPassword: passwords.value.new
       })
@@ -265,18 +243,17 @@ const handlePasswordChange = async () => {
 
     if (res.ok) {
       message.value = { text: "Passwort erfolgreich aktualisiert!", type: "success" };
-      // Felder leeren
       passwords.value.old = '';
       passwords.value.new = '';
       passwords.value.confirm = '';
     } else {
-      // Hier die Fehlermeldung vom Backend (z.B. "Altes Passwort falsch")
       message.value = { text: data.error, type: "error" };
     }
   } catch (err) {
     message.value = { text: "Verbindung zum Server fehlgeschlagen", type: "error" };
   }
 };
+
 function openRepoInEditor(repo: GitHubRepo) {
   if (!openInEditor) {
     console.warn("openInEditor is undefined")
@@ -292,11 +269,10 @@ function openRepoInEditor(repo: GitHubRepo) {
     }
   })
 
-  // Profil schließen
   emit("close")
 }
-
 </script>
+
 
 <template>
   <div class="profile-overlay" @click.stop>

@@ -1,20 +1,15 @@
 <script setup lang="ts">
-import {ref} from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import Icon from "../Icon.vue";
 
-
-
-
+const API_URL = import.meta.env.VITE_API_URL;
 
 const isLogin = ref(true)
 const email = ref('')
 const password = ref('')
 const authError = ref('')
 const router = useRouter();
-
-
-
 
 function toggleMode() {
   isLogin.value = !isLogin.value;
@@ -24,8 +19,8 @@ async function submitAuth() {
   authError.value = "";
 
   const url = isLogin.value
-      ? "http://localhost:3000/auth/login"
-      : "http://localhost:3000/auth/register";
+      ? `${API_URL}/auth/login`
+      : `${API_URL}/auth/register`;
 
   const res = await fetch(url, {
     method: "POST",
@@ -39,27 +34,16 @@ async function submitAuth() {
   const data = await res.json();
 
   if (res.ok && data.token) {
-    // Token speichern (für API Anfragen)
     localStorage.setItem('token', data.token);
-
-    // E-Mail speichern (für die Anzeige im Profil)
     localStorage.setItem('userEmail', email.value);
-
-    // Weiterleitung zum Editor
     router.push("/main");
   } else {
     authError.value = data.error || "Login fehlgeschlagen";
   }
-
-  if (data.error) {
-    authError.value = data.error;
-    return;
-  }
-
 }
 
 function loginWithGitHub() {
-  window.location.href = "http://localhost:3000/auth/github"
+  window.location.href = `${API_URL}/auth/github`;
 }
 
 function continueWithoutLogin() {
@@ -67,6 +51,7 @@ function continueWithoutLogin() {
   router.push("/main");
 }
 </script>
+
 
 <template>
   <div class="login-wrapper">
